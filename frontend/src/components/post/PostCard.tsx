@@ -189,7 +189,7 @@ export const PostCard: React.FC<PostCardProps> = ({
       </CardHeader>
 
       <AuthorWrapper $blur={!hasAccess}>
-        <AuthorDisplay infoString={post.authorInfo} iconSize={24} />
+        <AuthorDisplay infoString={post.authorInfo} iconSize={32} adjustIconMargin />
       </AuthorWrapper>
 
       <ContentWrapper $blur={!hasAccess}>

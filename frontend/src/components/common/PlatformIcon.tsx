@@ -1,18 +1,52 @@
 import React from 'react';
 import styled from 'styled-components';
-import { Youtube, Instagram, Briefcase } from 'lucide-react';
-import { TikTokIcon, ChzzkIcon, SoopIcon } from '../icons/PlatformIcons';
+import { Briefcase } from 'lucide-react';
+
+import youtubeIcon from '../../assets/youtube_icon.svg';
+import instagramIcon from '../../assets/insta_icon.svg';
+import tiktokIcon from '../../assets/tiktok_icon.svg';
+import chzzkIcon from '../../assets/chzzk_icon.svg';
+import soopIcon from '../../assets/soop_icon.svg';
 
 interface PlatformIconProps {
   provider: string;
   size?: number;
+  adjustMargin?: boolean;
 }
 
-const IconWrapper = styled.span<{ $color: string; $size: number }>`
+const getMarginLeft = (provider: string): string => {
+  switch (provider.toLowerCase()) {
+    case 'youtube': return '-5px';
+    case 'instagram': return '-6px';
+    case 'tiktok': return '-6px';
+    case 'chzzk': return '-6px';
+    case 'soop': return '-2px';
+    default: return '0px';
+  }
+};
+
+const IconWrapper = styled.span<{ $size: number; $provider: string; $adjustMargin: boolean }>`
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: ${props => props.$color};
+  width: ${props => props.$size}px;
+  height: ${props => props.$size}px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  margin-left: ${props => props.$adjustMargin ? getMarginLeft(props.$provider) : '0px'};
+`;
+
+const IconImage = styled.img`
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+`;
+
+const FallbackWrapper = styled.span<{ $size: number }>`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #9ca3af;
 
   svg {
     width: ${props => props.$size}px;
@@ -20,40 +54,31 @@ const IconWrapper = styled.span<{ $color: string; $size: number }>`
   }
 `;
 
-const getColorByProvider = (provider: string): string => {
+const getIconByProvider = (provider: string): string | null => {
   switch (provider.toLowerCase()) {
-    case 'youtube': return '#ef4444';
-    case 'instagram': return '#ec4899';
-    case 'tiktok': return '#22d3ee';
-    case 'chzzk': return '#00FFA3';
-    case 'soop': return '#3b82f6';
-    default: return '#9ca3af';
+    case 'youtube': return youtubeIcon;
+    case 'instagram': return instagramIcon;
+    case 'tiktok': return tiktokIcon;
+    case 'chzzk': return chzzkIcon;
+    case 'soop': return soopIcon;
+    default: return null;
   }
 };
 
-export const PlatformIcon: React.FC<PlatformIconProps> = ({ provider, size = 24 }) => {
-  const color = getColorByProvider(provider);
+export const PlatformIcon: React.FC<PlatformIconProps> = ({ provider, size = 24, adjustMargin = false }) => {
+  const iconSrc = getIconByProvider(provider);
 
-  const renderIcon = () => {
-    switch (provider.toLowerCase()) {
-      case 'youtube':
-        return <Youtube />;
-      case 'instagram':
-        return <Instagram />;
-      case 'tiktok':
-        return <TikTokIcon size={size} />;
-      case 'chzzk':
-        return <ChzzkIcon size={size} />;
-      case 'soop':
-        return <SoopIcon size={size} />;
-      default:
-        return <Briefcase />;
-    }
-  };
+  if (!iconSrc) {
+    return (
+      <FallbackWrapper $size={size}>
+        <Briefcase />
+      </FallbackWrapper>
+    );
+  }
 
   return (
-    <IconWrapper $color={color} $size={size}>
-      {renderIcon()}
+    <IconWrapper $size={size} $provider={provider} $adjustMargin={adjustMargin}>
+      <IconImage src={iconSrc} alt={provider} />
     </IconWrapper>
   );
 };

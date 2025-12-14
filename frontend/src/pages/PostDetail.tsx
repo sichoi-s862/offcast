@@ -520,7 +520,7 @@ export const PostDetail: React.FC<PostDetailProps> = ({ post, currentUser, onBac
         <ScrollContent className="no-scrollbar">
           <PostSection>
             <AuthorRow>
-              <AuthorDisplay infoString={post.authorInfo} iconSize={24} time={post.time} />
+              <AuthorDisplay infoString={post.authorInfo} iconSize={32} time={post.time} adjustIconMargin />
             </AuthorRow>
             <PostTitle>{post.title}</PostTitle>
             <PostContent>{post.content}</PostContent>
@@ -548,7 +548,7 @@ export const PostDetail: React.FC<PostDetailProps> = ({ post, currentUser, onBac
               <React.Fragment key={comment.id}>
                 <CommentItem>
                   <CommentHeader>
-                    <AuthorDisplay infoString={comment.authorInfo} />
+                    <AuthorDisplay infoString={comment.authorInfo} iconSize={32} adjustIconMargin />
                     <CommentMenuButton onClick={() => openMenu('comment', comment.id)}>
                       <MoreHorizontal />
                     </CommentMenuButton>
@@ -572,7 +572,7 @@ export const PostDetail: React.FC<PostDetailProps> = ({ post, currentUser, onBac
                 {comment.replies.map((reply) => (
                   <CommentItem key={reply.id} $isReply>
                     <CommentHeader>
-                      <AuthorDisplay infoString={reply.authorInfo} />
+                      <AuthorDisplay infoString={reply.authorInfo} iconSize={32} adjustIconMargin />
                       <CommentMenuButton onClick={() => openMenu('comment', reply.id)}>
                         <MoreHorizontal />
                       </CommentMenuButton>

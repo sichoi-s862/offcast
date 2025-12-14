@@ -1,8 +1,13 @@
 import React from 'react';
 import styled, { keyframes } from 'styled-components';
-import { Youtube, Instagram } from 'lucide-react';
-import { TikTokIcon, ChzzkIcon, SoopIcon, OffcastLogo } from '../components/icons/PlatformIcons';
+import { OffcastLogo } from '../components/icons/PlatformIcons';
 import type { Provider } from '../types';
+
+import youtubeIcon from '../assets/youtube_icon.svg';
+import instagramIcon from '../assets/insta_icon.svg';
+import tiktokIcon from '../assets/tiktok_icon.svg';
+import chzzkIcon from '../assets/chzzk_icon.svg';
+import soopIcon from '../assets/soop_icon.svg';
 
 interface LoginScreenProps {
   onLogin: (provider: Provider | string) => void;
@@ -82,7 +87,7 @@ const LoginButton = styled.button`
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
+  gap: 8px;
   border: 1px solid #1f2937;
   transition: background-color 0.2s;
 
@@ -90,36 +95,18 @@ const LoginButton = styled.button`
     background-color: #3d3d3d;
   }
 
-  svg {
-    width: 20px;
-    height: 20px;
-  }
 `;
 
 const ButtonText = styled.span`
   color: white;
   font-weight: 500;
-  font-size: 14px;
+  font-size: 16px;
 `;
 
-const YouTubeIcon = styled(Youtube)`
-  color: #ef4444;
-`;
-
-const InstagramIcon = styled(Instagram)`
-  color: #ec4899;
-`;
-
-const StyledTikTokIcon = styled(TikTokIcon)`
-  color: #22d3ee;
-`;
-
-const StyledChzzkIcon = styled(ChzzkIcon)`
-  color: #00FFA3;
-`;
-
-const StyledSoopIcon = styled(SoopIcon)`
-  color: #3b82f6;
+const PlatformIconImg = styled.img`
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
 `;
 
 export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
@@ -137,27 +124,27 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
 
         <ButtonGroup>
           <LoginButton onClick={() => onLogin('youtube')}>
-            <YouTubeIcon />
+            <PlatformIconImg src={youtubeIcon} alt="YouTube" />
             <ButtonText>YouTube로 계속하기</ButtonText>
           </LoginButton>
 
           <LoginButton onClick={() => onLogin('instagram')}>
-            <InstagramIcon />
+            <PlatformIconImg src={instagramIcon} alt="Instagram" />
             <ButtonText>Instagram으로 계속하기</ButtonText>
           </LoginButton>
 
           <LoginButton onClick={() => onLogin('chzzk')}>
-            <StyledChzzkIcon size={20} />
-            <ButtonText>치지직으로 계속하기</ButtonText>
+            <PlatformIconImg src={chzzkIcon} alt="CHZZK" />
+            <ButtonText>CHZZK으로 계속하기</ButtonText>
           </LoginButton>
 
           <LoginButton onClick={() => onLogin('soop')}>
-            <StyledSoopIcon size={20} />
+            <PlatformIconImg src={soopIcon} alt="SOOP" />
             <ButtonText>SOOP으로 계속하기</ButtonText>
           </LoginButton>
 
           <LoginButton onClick={() => onLogin('tiktok')}>
-            <StyledTikTokIcon size={20} />
+            <PlatformIconImg src={tiktokIcon} alt="TikTok" />
             <ButtonText>TikTok으로 계속하기</ButtonText>
           </LoginButton>
         </ButtonGroup>

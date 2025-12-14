@@ -8,6 +8,7 @@ interface AuthorDisplayProps {
   className?: string;
   iconSize?: number;
   time?: string;
+  adjustIconMargin?: boolean;
 }
 
 const Container = styled.div`
@@ -51,8 +52,9 @@ const TimeText = styled.span`
 export const AuthorDisplay: React.FC<AuthorDisplayProps> = ({
   infoString,
   className,
-  iconSize = 16,
-  time
+  iconSize = 24,
+  time,
+  adjustIconMargin = false
 }) => {
   if (!infoString) return null;
 
@@ -60,7 +62,7 @@ export const AuthorDisplay: React.FC<AuthorDisplayProps> = ({
 
   return (
     <Container className={className}>
-      <PlatformIcon provider={provider} size={iconSize} />
+      <PlatformIcon provider={provider} size={iconSize} adjustMargin={adjustIconMargin} />
       <Nickname>{nickname}</Nickname>
       <Dot />
       <SubscriberInfo>
