@@ -12,8 +12,7 @@ import {
   ApiResponse,
   ApiParam,
 } from '@nestjs/swagger';
-import { SocialService } from './social.service';
-import type { Provider } from './social.service';
+import { SocialService, type SocialProvider } from './social.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { User } from '@prisma/client';
@@ -53,13 +52,6 @@ export class SocialController {
     return this.socialService.getSoopStats(user.id);
   }
 
-  @Get('instagram/stats')
-  @ApiOperation({ summary: 'Instagram 계정 통계' })
-  @ApiResponse({ status: HttpStatus.OK, description: '팔로워 수 등 계정 통계 반환' })
-  async getInstagramStats(@CurrentUser() user: User) {
-    return this.socialService.getInstagramStats(user.id);
-  }
-
   @Get('chzzk/stats')
   @ApiOperation({ summary: 'Chzzk 채널 통계' })
   @ApiResponse({ status: HttpStatus.OK, description: '팔로워 수 등 채널 통계 반환' })
@@ -78,13 +70,13 @@ export class SocialController {
   @ApiOperation({ summary: '특정 플랫폼 통계 조회' })
   @ApiParam({
     name: 'provider',
-    enum: ['youtube', 'tiktok', 'soop', 'instagram', 'chzzk'],
+    enum: ['youtube', 'tiktok', 'soop', 'chzzk'],
     description: '플랫폼 이름',
   })
   @ApiResponse({ status: HttpStatus.OK, description: '플랫폼별 통계 반환' })
   async getStatsByProvider(
     @CurrentUser() user: User,
-    @Param('provider') provider: Provider,
+    @Param('provider') provider: SocialProvider,
   ) {
     return this.socialService.getStatsByProvider(user.id, provider);
   }

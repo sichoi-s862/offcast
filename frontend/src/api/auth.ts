@@ -1,6 +1,6 @@
 const API_URL = 'http://localhost:8080';
 
-export type Provider = 'youtube' | 'tiktok' | 'soop' | 'instagram' | 'chzzk';
+export type Provider = 'youtube' | 'tiktok' | 'soop' | 'chzzk';
 
 export interface UserAccount {
   id: string;
@@ -29,7 +29,6 @@ export interface AllStatsResponse {
   youtube?: SocialStats;
   tiktok?: SocialStats;
   soop?: SocialStats;
-  instagram?: SocialStats;
   chzzk?: SocialStats;
 }
 
@@ -62,7 +61,7 @@ export const getAllStats = async (token: string): Promise<SocialStats[]> => {
 
   // 객체를 배열로 변환
   const statsArray: SocialStats[] = [];
-  const providers = ['youtube', 'tiktok', 'soop', 'instagram', 'chzzk'] as const;
+  const providers = ['youtube', 'tiktok', 'soop', 'chzzk'] as const;
 
   for (const provider of providers) {
     if (data[provider]) {

@@ -44,13 +44,6 @@ export const YouTubeIconWrapper = styled.div<{ $size?: number }>`
   color: #ef4444;
 `;
 
-// Instagram icon wrapper
-export const InstagramIconWrapper = styled.div<{ $size?: number }>`
-  width: ${props => props.$size || 24}px;
-  height: ${props => props.$size || 24}px;
-  color: #ec4899;
-`;
-
 // TikTok icon wrapper
 export const TikTokIconWrapper = styled.div<{ $size?: number }>`
   width: ${props => props.$size || 24}px;

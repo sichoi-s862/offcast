@@ -216,6 +216,22 @@ export class UserService {
   }
 
   /**
+   * 사용자 활동 통계 조회
+   */
+  async getUserStats(userId: string): Promise<{ postCount: number; commentCount: number }> {
+    const [postCount, commentCount] = await Promise.all([
+      this.prisma.post.count({
+        where: { authorId: userId, deletedAt: null },
+      }),
+      this.prisma.comment.count({
+        where: { authorId: userId, deletedAt: null },
+      }),
+    ]);
+
+    return { postCount, commentCount };
+  }
+
+  /**
    * 회원 탈퇴 (소프트 삭제)
    */
   async withdraw(userId: string): Promise<void> {

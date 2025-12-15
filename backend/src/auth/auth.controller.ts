@@ -9,6 +9,7 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse, ApiBody } from '@nestjs/swagger';
+import { IsEnum, IsOptional, IsString, IsNumber } from 'class-validator';
 import type { Response, Request } from 'express';
 import { ConfigService } from '@nestjs/config';
 import { AuthService, DevLoginRequest } from './auth.service';
@@ -17,13 +18,13 @@ import {
   YouTubeOAuthGuard,
   TikTokOAuthGuard,
   SoopOAuthGuard,
-  InstagramOAuthGuard,
   ChzzkOAuthGuard,
 } from './guards/oauth.guard';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { Public } from '../common/decorators/public.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
-import type { User, Provider } from '@prisma/client';
+import type { User } from '@prisma/client';
+import { Provider } from '@prisma/client';
 
 /**
  * OAuth 요청 인터페이스
@@ -51,8 +52,15 @@ interface OAuthRequest extends Request {
  * 개발용 로그인 DTO
  */
 class DevLoginDto {
+  @IsEnum(Provider)
   provider: Provider;
+
+  @IsOptional()
+  @IsString()
   nickname?: string;
+
+  @IsOptional()
+  @IsNumber()
   subscriberCount?: number;
 }
 
@@ -149,7 +157,7 @@ export class AuthController {
       properties: {
         provider: {
           type: 'string',
-          enum: ['YOUTUBE', 'INSTAGRAM', 'TIKTOK', 'CHZZK', 'SOOP'],
+          enum: ['YOUTUBE', 'TIKTOK', 'CHZZK', 'SOOP'],
           description: '플랫폼 종류',
         },
         nickname: {
@@ -239,26 +247,6 @@ export class AuthController {
   @ApiOperation({ summary: 'SOOP OAuth 콜백' })
   async soopCallback(@Req() req: OAuthRequest, @Res() res: Response) {
     return this.handleOAuthCallback('SOOP', req, res);
-  }
-
-  // ============================================
-  // Instagram OAuth
-  // ============================================
-
-  @Public()
-  @Get('instagram')
-  @UseGuards(InstagramOAuthGuard)
-  @ApiOperation({ summary: 'Instagram OAuth 로그인 시작' })
-  instagramLogin() {
-    // Guard가 리다이렉트 처리
-  }
-
-  @Public()
-  @Get('instagram/callback')
-  @UseGuards(InstagramOAuthGuard)
-  @ApiOperation({ summary: 'Instagram OAuth 콜백' })
-  async instagramCallback(@Req() req: OAuthRequest, @Res() res: Response) {
-    return this.handleOAuthCallback('INSTAGRAM', req, res);
   }
 
   // ============================================

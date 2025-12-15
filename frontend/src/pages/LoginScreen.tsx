@@ -4,10 +4,9 @@ import { OffcastLogo } from '../components/icons/PlatformIcons';
 import type { Provider } from '../types';
 
 import youtubeIcon from '../assets/youtube_icon.svg';
-import instagramIcon from '../assets/insta_icon.svg';
 import tiktokIcon from '../assets/tiktok_icon.svg';
 import chzzkIcon from '../assets/chzzk_icon.svg';
-import soopIcon from '../assets/soop_icon.svg';
+// import soopIcon from '../assets/soop_icon.svg'; // SOOP 추후 활성화 예정
 
 interface LoginScreenProps {
   onLogin: (provider: Provider | string) => void;
@@ -128,20 +127,17 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
             <ButtonText>YouTube로 계속하기</ButtonText>
           </LoginButton>
 
-          <LoginButton onClick={() => onLogin('instagram')}>
-            <PlatformIconImg src={instagramIcon} alt="Instagram" />
-            <ButtonText>Instagram으로 계속하기</ButtonText>
-          </LoginButton>
-
           <LoginButton onClick={() => onLogin('chzzk')}>
             <PlatformIconImg src={chzzkIcon} alt="CHZZK" />
             <ButtonText>CHZZK으로 계속하기</ButtonText>
           </LoginButton>
 
+          {/* SOOP 로그인 버튼 - 추후 활성화 예정
           <LoginButton onClick={() => onLogin('soop')}>
             <PlatformIconImg src={soopIcon} alt="SOOP" />
             <ButtonText>SOOP으로 계속하기</ButtonText>
           </LoginButton>
+          */}
 
           <LoginButton onClick={() => onLogin('tiktok')}>
             <PlatformIconImg src={tiktokIcon} alt="TikTok" />

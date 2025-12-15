@@ -1,173 +1,132 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { GlobalStyle } from './styles/GlobalStyle';
 import { SplashScreen } from './pages/SplashScreen';
 import { LoginScreen } from './pages/LoginScreen';
 import { NicknameScreen } from './pages/NicknameScreen';
 import { MainApp } from './pages/MainApp';
-import type { CurrentUser, Provider } from './types';
-import { getMe, getAllStats, getLoginUrl as getApiLoginUrl } from './api/auth';
-import { formatSubscriberCount } from './utils/format';
+import { ToastProvider } from './components/common/Toast';
+import type { Provider } from './types';
+import { useAuthStore, useChannelStore, toast } from './stores';
 
 type AppState = 'splash' | 'login' | 'nickname' | 'main';
 
 const AppContent: React.FC = () => {
   const [appState, setAppState] = useState<AppState>('splash');
-  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
-  const [token, setToken] = useState<string | null>(null);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  // Check for existing token on mount
+  // Zustand 스토어
+  const {
+    user: currentUser,
+    isAuthenticated,
+    isLoading,
+    login,
+    logout,
+    initAuth,
+    setUser,
+  } = useAuthStore();
+
+  const { fetchChannels } = useChannelStore();
+
+  // 앱 시작 시 인증 초기화
   useEffect(() => {
-    const savedToken = localStorage.getItem('token');
-    if (savedToken) {
-      // 더미 토큰인 경우
-      if (savedToken.startsWith('dummy_')) {
-        const savedDummyUser = localStorage.getItem('dummyUser');
-        if (savedDummyUser) {
-          setToken(savedToken);
-          setCurrentUser(JSON.parse(savedDummyUser));
-          setAppState('main');
-          return;
-        }
+    const init = async () => {
+      const hasAuth = await initAuth();
+      if (hasAuth) {
+        // 채널 목록 미리 로드
+        fetchChannels();
       }
-      // 실제 토큰인 경우
-      setToken(savedToken);
-      loadUserData(savedToken);
-    }
+    };
+    init();
+  }, [initAuth, fetchChannels]);
+
+  // 인증 상태 변경 감지 (로그아웃 이벤트)
+  useEffect(() => {
+    const handleLogoutEvent = () => {
+      setAppState('login');
+    };
+
+    window.addEventListener('auth:logout', handleLogoutEvent);
+    return () => {
+      window.removeEventListener('auth:logout', handleLogoutEvent);
+    };
   }, []);
 
-  // Handle OAuth callback
+  // OAuth 콜백 처리
   useEffect(() => {
     const urlToken = searchParams.get('token');
     const error = searchParams.get('error');
 
     if (error) {
-      alert(`로그인 실패: ${decodeURIComponent(error)}`);
+      toast.error(`로그인 실패: ${decodeURIComponent(error)}`);
       setAppState('login');
       navigate('/', { replace: true });
       return;
     }
 
     if (urlToken) {
-      localStorage.setItem('token', urlToken);
-      setToken(urlToken);
-      loadUserData(urlToken);
+      // 기존 OAuth 토큰 처리 로직 유지 (YouTube 등)
+      localStorage.setItem('accessToken', urlToken);
+      initAuth();
       navigate('/', { replace: true });
     }
-  }, [searchParams, navigate]);
+  }, [searchParams, navigate, initAuth]);
 
-  const loadUserData = async (authToken: string) => {
-    try {
-      const user = await getMe(authToken);
-      const stats = await getAllStats(authToken);
-
-      if (user.accounts && user.accounts.length > 0) {
-        const account = user.accounts[0];
-        const statData = stats.find(s => s.provider.toLowerCase() === account.provider.toLowerCase());
-
-        // Get subscriber/follower count
-        let rawSubCount = 0;
-        if (statData) {
-          rawSubCount = statData.subscriberCount || statData.followerCount || statData.fanCount || 0;
-        }
-
-        const userData: CurrentUser = {
-          provider: account.provider,
-          nickname: account.profileName || `User${user.id.slice(0, 6)}`,
-          subscriberCount: formatSubscriberCount(rawSubCount),
-          rawSubCount: rawSubCount,
-        };
-
-        setCurrentUser(userData);
-        setAppState('main');
-      }
-    } catch (error) {
-      console.error('Failed to load user data:', error);
-      localStorage.removeItem('token');
-      setToken(null);
-      setAppState('login');
-    }
-  };
-
-  const handleSplashFinish = () => {
-    if (token && currentUser) {
+  // 스플래시 완료 핸들러
+  const handleSplashFinish = useCallback(() => {
+    if (isAuthenticated && currentUser) {
       setAppState('main');
-    } else if (token) {
-      // Token exists but user not loaded yet, wait
+    } else if (isLoading) {
+      // 로딩 중이면 대기
     } else {
       setAppState('login');
     }
-  };
+  }, [isAuthenticated, currentUser, isLoading]);
 
-  const handleLogin = (provider: Provider | string) => {
-    const providerLower = provider.toLowerCase();
+  // 로그인 핸들러 (개발용 API 사용)
+  const handleLogin = useCallback(async (provider: Provider | string) => {
+    const providerUpper = provider.toUpperCase();
 
-    // YouTube만 실제 OAuth, 나머지는 더미 데이터
-    if (providerLower === 'youtube') {
-      window.location.href = getApiLoginUrl(providerLower as Provider);
-    } else {
-      // 더미 로그인 처리
-      const dummyUsers: Record<string, CurrentUser> = {
-        instagram: {
-          provider: 'Instagram',
-          nickname: '인스타그래머',
-          subscriberCount: formatSubscriberCount(15000),
-          rawSubCount: 15000,
-        },
-        tiktok: {
-          provider: 'TikTok',
-          nickname: '틱톡커',
-          subscriberCount: formatSubscriberCount(50000),
-          rawSubCount: 50000,
-        },
-        chzzk: {
-          provider: 'Chzzk',
-          nickname: '치지직스트리머',
-          subscriberCount: formatSubscriberCount(8000),
-          rawSubCount: 8000,
-        },
-        soop: {
-          provider: 'SOOP',
-          nickname: '숲방송러',
-          subscriberCount: formatSubscriberCount(120000),
-          rawSubCount: 120000,
-        },
-      };
+    try {
+      // 개발용 로그인 API 호출
+      await login({
+        provider: providerUpper,
+        nickname: getDefaultNickname(providerUpper),
+        subscriberCount: getDefaultSubscriberCount(providerUpper),
+      });
 
-      const dummyUser = dummyUsers[providerLower];
-      if (dummyUser) {
-        localStorage.setItem('token', `dummy_${providerLower}_token`);
-        localStorage.setItem('dummyUser', JSON.stringify(dummyUser));
-        setToken(`dummy_${providerLower}_token`);
-        setCurrentUser(dummyUser);
-        setAppState('main');
-      }
+      // 채널 목록 로드
+      fetchChannels();
+      setAppState('main');
+    } catch (error) {
+      console.error('Login failed:', error);
+      toast.error('로그인에 실패했습니다. 다시 시도해주세요.');
     }
-  };
+  }, [login, fetchChannels]);
 
-  const handleNicknameComplete = (nickname: string) => {
+  // 닉네임 설정 완료 핸들러
+  const handleNicknameComplete = useCallback((nickname: string) => {
     if (currentUser) {
-      setCurrentUser({ ...currentUser, nickname });
+      setUser({ ...currentUser, nickname });
     }
     setAppState('main');
-  };
+  }, [currentUser, setUser]);
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    setToken(null);
-    setCurrentUser(null);
+  // 로그아웃 핸들러
+  const handleLogout = useCallback(() => {
+    logout();
     setAppState('login');
-  };
+  }, [logout]);
 
-  const handleUpdateNickname = (nickname: string) => {
+  // 닉네임 업데이트 핸들러
+  const handleUpdateNickname = useCallback((nickname: string) => {
     if (currentUser) {
-      setCurrentUser({ ...currentUser, nickname });
+      setUser({ ...currentUser, nickname });
     }
-  };
+  }, [currentUser, setUser]);
 
-  // Render based on app state
+  // 렌더링
   if (appState === 'splash') {
     return <SplashScreen onFinish={handleSplashFinish} />;
   }
@@ -190,14 +149,37 @@ const AppContent: React.FC = () => {
     );
   }
 
-  // Default loading state
+  // 기본 로딩 상태
   return <SplashScreen onFinish={handleSplashFinish} />;
+};
+
+// 플랫폼별 기본 닉네임
+const getDefaultNickname = (provider: string): string => {
+  const nicknames: Record<string, string> = {
+    YOUTUBE: '유튜버',
+    TIKTOK: '틱톡커',
+    CHZZK: '치지직스트리머',
+    SOOP: '숲방송러',
+  };
+  return nicknames[provider] || '크리에이터';
+};
+
+// 플랫폼별 기본 구독자 수 (테스트용)
+const getDefaultSubscriberCount = (provider: string): number => {
+  const counts: Record<string, number> = {
+    YOUTUBE: 25000,
+    TIKTOK: 50000,
+    CHZZK: 8000,
+    SOOP: 120000,
+  };
+  return counts[provider] || 10000;
 };
 
 const App: React.FC = () => {
   return (
     <BrowserRouter>
       <GlobalStyle />
+      <ToastProvider />
       <Routes>
         <Route path="/" element={<AppContent />} />
         <Route path="/auth/callback" element={<AppContent />} />

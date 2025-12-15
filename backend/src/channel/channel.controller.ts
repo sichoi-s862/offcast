@@ -102,11 +102,26 @@ export class ChannelController {
   }
 
   /**
+   * 특정 채널 조회 (ID)
+   */
+  @Public()
+  @Get('by-id/:id')
+  @ApiOperation({ summary: '특정 채널 조회 (ID)' })
+  @ApiParam({ name: 'id', description: '채널 ID' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: '채널 정보 반환',
+  })
+  async findById(@Param('id') id: string) {
+    return this.channelService.findById(id);
+  }
+
+  /**
    * 특정 채널 조회 (슬러그)
    */
   @Public()
   @Get(':slug')
-  @ApiOperation({ summary: '특정 채널 조회' })
+  @ApiOperation({ summary: '특정 채널 조회 (슬러그)' })
   @ApiParam({ name: 'slug', description: '채널 슬러그' })
   @ApiResponse({
     status: HttpStatus.OK,

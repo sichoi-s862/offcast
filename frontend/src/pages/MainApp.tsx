@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import styled from 'styled-components';
 import { Search, X, Edit3 } from 'lucide-react';
 import { OffcastLogo } from '../components/icons/PlatformIcons';
@@ -14,8 +14,8 @@ import {
   MyInfoPage,
   EditNickPage
 } from './subpages';
-import type { Post, CurrentUser } from '../types';
-import { INITIAL_POSTS } from '../data/mockData';
+import type { CurrentUser, ApiPost, CreatePostDto } from '../types';
+import { usePostStore, useChannelStore } from '../stores';
 
 interface MainAppProps {
   currentUser: CurrentUser;
@@ -194,118 +194,114 @@ export const MainApp: React.FC<MainAppProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState('home');
   const [currentScreen, setCurrentScreen] = useState<Screen>('main');
-  const [posts, setPosts] = useState<Post[]>(INITIAL_POSTS);
-  const [selectedPost, setSelectedPost] = useState<Post | null>(null);
+  const [selectedPost, setSelectedPost] = useState<ApiPost | null>(null);
   const [isWriteOpen, setIsWriteOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
 
   const [searchTerm, setSearchTerm] = useState('');
-  const [isSearching, setIsSearching] = useState(false);
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [isSearchActive, setIsSearchActive] = useState(false);
-  const [displayCount, setDisplayCount] = useState(15);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const searchDebounceRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Tab switching loading effect
+  // Zustand 스토어
+  const { createNewPost, refreshPosts } = usePostStore();
+  const { fetchChannels } = useChannelStore();
+
+  // 초기 로드
   useEffect(() => {
-    setIsLoading(true);
-    const timer = setTimeout(() => setIsLoading(false), 500);
-    return () => clearTimeout(timer);
-  }, [activeTab]);
+    fetchChannels();
+  }, [fetchChannels]);
 
   // Scroll to top on tab or screen change
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [activeTab, currentScreen]);
 
-  const filteredPosts = useMemo(() => {
-    if (!searchTerm.trim()) return posts;
-    return posts.filter(post =>
-      post.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      post.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      post.channelId.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  }, [posts, searchTerm]);
-
-  // Infinite scroll
+  // 검색어 디바운스 (300ms)
   useEffect(() => {
-    const handleScroll = () => {
-      if (
-        window.innerHeight + document.documentElement.scrollTop >=
-        document.documentElement.offsetHeight - 500
-      ) {
-        if (displayCount < filteredPosts.length) {
-          setDisplayCount(prev => prev + 15);
-        }
+    if (searchDebounceRef.current) {
+      clearTimeout(searchDebounceRef.current);
+    }
+
+    searchDebounceRef.current = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 300);
+
+    return () => {
+      if (searchDebounceRef.current) {
+        clearTimeout(searchDebounceRef.current);
       }
     };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [filteredPosts.length, displayCount]);
+  }, [searchTerm]);
 
-  // Search loading effect
-  useEffect(() => {
-    if (isSearchActive) {
-      setIsSearching(true);
-      const timer = setTimeout(() => {
-        setIsSearching(false);
-      }, 800);
-      return () => clearTimeout(timer);
+  // 게시글 작성 핸들러
+  const handlePostSubmit = useCallback(async (
+    title: string,
+    content: string,
+    images: Array<{ url: string; key: string }>,
+    channelId: string,
+    hashtags: string[]
+  ) => {
+    try {
+      const postData: CreatePostDto = {
+        channelId: channelId || 'free',
+        title,
+        content,
+        imageUrls: images.length > 0 ? images.map(img => img.url) : undefined,
+        imageKeys: images.length > 0 ? images.map(img => img.key) : undefined,
+        hashtags: hashtags.length > 0 ? hashtags : undefined,
+      };
+
+      await createNewPost(postData);
+      setIsWriteOpen(false);
+      // 피드 새로고침
+      refreshPosts();
+    } catch (error) {
+      console.error('Failed to create post:', error);
+      // 전역 인터셉터에서 토스트 처리
     }
-  }, [searchTerm, isSearchActive]);
+  }, [createNewPost, refreshPosts]);
 
-  const handleLike = (id: number) => {
-    setPosts(posts.map(post =>
-      post.id === id
-        ? { ...post, isLiked: !post.isLiked, likes: post.isLiked ? post.likes - 1 : post.likes + 1 }
-        : post
-    ));
-  };
-
-  const handlePostSubmit = (title: string, content: string, image: string | null) => {
-    const authorString = `${currentUser.provider}|${currentUser.nickname}|${currentUser.subscriberCount}`;
-    const newPost: Post = {
-      id: Date.now(),
-      authorInfo: authorString,
-      channelId: 'free',
-      title,
-      content,
-      likes: 0,
-      comments: 0,
-      time: '방금 전',
-      isLiked: false,
-      image
-    };
-    setPosts([newPost, ...posts]);
-    setIsWriteOpen(false);
-  };
-
-  const toggleSearch = () => {
+  // 검색 토글
+  const toggleSearch = useCallback(() => {
     setIsSearchActive(!isSearchActive);
     if (!isSearchActive) {
       setTimeout(() => searchInputRef.current?.focus(), 100);
     } else {
       setSearchTerm('');
+      setDebouncedSearchTerm('');
     }
-  };
+  }, [isSearchActive]);
 
-  // Render sub pages
+  // 게시글 클릭 핸들러
+  const handlePostClick = useCallback((post: ApiPost) => {
+    setSelectedPost(post);
+  }, []);
+
+  // 채널 선택 핸들러 (채널 탭에서 선택 시 홈으로 이동)
+  const handleChannelSelect = useCallback((_channelId: string) => {
+    setActiveTab('home');
+    // FeedView에서 해당 채널 필터가 자동 적용됨
+  }, []);
+
+  // 게시글 상세 페이지
   if (selectedPost) {
     return (
       <PostDetail
-        post={selectedPost}
+        postId={selectedPost.id}
         currentUser={currentUser}
         onBack={() => setSelectedPost(null)}
       />
     );
   }
 
+  // 서브 페이지들
   if (currentScreen === 'my_posts') {
     return (
       <MyPostsPage
-        posts={posts}
         currentUser={currentUser}
         onBack={() => setCurrentScreen('main')}
-        onPostClick={setSelectedPost}
+        onPostClick={handlePostClick}
       />
     );
   }
@@ -375,17 +371,16 @@ export const MainApp: React.FC<MainAppProps> = ({
       <Main>
         {activeTab === 'home' && (
           <FeedView
-            posts={filteredPosts}
             currentUser={currentUser}
-            displayCount={displayCount}
-            isLoading={isLoading}
-            isSearching={isSearching}
-            onPostClick={setSelectedPost}
-            onLike={handleLike}
+            searchQuery={debouncedSearchTerm}
+            onPostClick={handlePostClick}
           />
         )}
         {activeTab === 'topics' && (
-          <ChannelsView currentUser={currentUser} />
+          <ChannelsView
+            currentUser={currentUser}
+            onChannelSelect={handleChannelSelect}
+          />
         )}
         {activeTab === 'my' && (
           <MyPageView
@@ -408,6 +403,7 @@ export const MainApp: React.FC<MainAppProps> = ({
         isOpen={isWriteOpen}
         onClose={() => setIsWriteOpen(false)}
         onSubmit={handlePostSubmit}
+        currentUser={currentUser}
       />
 
       <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />

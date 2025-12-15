@@ -1,12 +1,30 @@
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
+import { ValidationPipe, Logger } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
+import type { Request, Response, NextFunction } from 'express';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, {
+    logger: ['log', 'error', 'warn', 'debug', 'verbose'],
+  });
   const configService = app.get(ConfigService);
+  const logger = new Logger('HTTP');
+
+  // HTTP 요청 로깅 미들웨어
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    const { method, originalUrl } = req;
+    const start = Date.now();
+
+    res.on('finish', () => {
+      const { statusCode } = res;
+      const duration = Date.now() - start;
+      logger.log(`${method} ${originalUrl} ${statusCode} - ${duration}ms`);
+    });
+
+    next();
+  });
 
   // Enable CORS
   app.enableCors({

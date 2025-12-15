@@ -12,13 +12,13 @@ export const CHANNELS: Channel[] = [
 ];
 
 export const REPORT_REASONS = [
-  "스팸 / 부적절한 홍보",
-  "욕설 / 비하 발언",
-  "음란물 / 선정적인 콘텐츠",
-  "혐오 발언",
-  "개인정보 노출",
-  "기타"
-];
+  { label: "스팸 / 부적절한 홍보", value: "SPAM" },
+  { label: "욕설 / 비하 발언", value: "HARASSMENT" },
+  { label: "음란물 / 선정적인 콘텐츠", value: "INAPPROPRIATE" },
+  { label: "혐오 발언 / 허위정보", value: "MISINFORMATION" },
+  { label: "저작권 침해", value: "COPYRIGHT" },
+  { label: "기타", value: "OTHER" },
+] as const;
 
 export const FAQS = [
   { q: "닉네임은 어떻게 변경하나요?", a: "마이페이지 > 닉네임 수정 메뉴에서 변경하실 수 있습니다." },

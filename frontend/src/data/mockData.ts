@@ -2,7 +2,7 @@ import type { Post } from '../types';
 import { formatSubscriberCount } from '../utils/format';
 
 const generateDummyPosts = (): Post[] => {
-  const platforms = ['YouTube', 'Instagram', 'TikTok', 'Chzzk', 'SOOP'];
+  const platforms = ['YouTube', 'TikTok', 'Chzzk', 'SOOP'];
   const titles = [
     '이번 알고리즘 변경점 분석했습니다', '조명 세팅 질문드립니다', '편집자 구인 팁 좀', '합방 하실 분 계신가요?',
     '수익 정산 원래 이렇게 느린가요?', '악플 고소 후기', '채널 방향성 고민입니다',

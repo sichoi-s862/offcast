@@ -2,14 +2,15 @@ import React from 'react';
 import styled from 'styled-components';
 import { ThumbsUp, MessageCircle, Eye, Lock } from 'lucide-react';
 import { AuthorDisplay } from '../common/AuthorDisplay';
-import type { Post, CurrentUser } from '../../types';
-import { CHANNELS } from '../../constants';
+import type { ApiPost, CurrentUser } from '../../types';
+import { useChannelStore, toast } from '../../stores';
+import { formatRelativeTime, formatCount } from '../../utils/format';
 
 interface PostCardProps {
-  post: Post;
+  post: ApiPost;
   currentUser: CurrentUser;
-  onPostClick: (post: Post) => void;
-  onLike: (id: number) => void;
+  onPostClick: (post: ApiPost) => void;
+  onLike: () => void;
 }
 
 const CardContainer = styled.div`
@@ -157,39 +158,58 @@ const ActionButton = styled.button<{ $active?: boolean }>`
   }
 `;
 
+// 작성자 정보 문자열 생성 (AuthorDisplay 컴포넌트용)
+const buildAuthorInfo = (post: ApiPost): string => {
+  if (post.author) {
+    const account = post.author.accounts?.[0];
+    const provider = account?.provider || 'YOUTUBE';
+    const nickname = post.author.nickname;
+    const subCount = account?.subscriberCount || 0;
+    return `${provider}|${nickname}|${subCount}`;
+  }
+  return 'YOUTUBE|익명|0';
+};
+
 export const PostCard: React.FC<PostCardProps> = ({
   post,
   currentUser,
   onPostClick,
   onLike
 }) => {
-  const channel = CHANNELS.find(c => c.id === post.channelId) || CHANNELS[1];
-  const hasAccess = currentUser.rawSubCount >= channel.minSubs;
+  const { getChannelById } = useChannelStore();
+  const channel = getChannelById(post.channelId);
+  const hasAccess = !channel || currentUser.rawSubCount >= channel.minSubscribers;
 
   const handleClick = () => {
     if (hasAccess) {
       onPostClick(post);
     } else {
-      alert("구독자 수가 부족하여 입장할 수 없습니다.");
+      toast.warning("구독자 수가 부족하여 입장할 수 없습니다.");
     }
   };
 
   const handleLikeClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (hasAccess) {
-      onLike(post.id);
+      onLike();
     }
   };
+
+  const authorInfo = buildAuthorInfo(post);
+  const thumbnail = post.images?.[0]?.url || null;
+  const relativeTime = formatRelativeTime(post.createdAt);
 
   return (
     <CardContainer onClick={handleClick}>
       <CardHeader>
-        <ChannelBadge $hasAccess={hasAccess}>{channel.name}</ChannelBadge>
-        <TimeText>{post.time}</TimeText>
+        <ChannelBadge $hasAccess={hasAccess}>
+          {channel?.name || '자유게시판'}
+        </ChannelBadge>
+        <TimeText>{relativeTime}</TimeText>
       </CardHeader>
 
       <AuthorWrapper $blur={!hasAccess}>
-        <AuthorDisplay infoString={post.authorInfo} iconSize={32} adjustIconMargin />
+        <AuthorDisplay infoString={authorInfo} iconSize={32} adjustIconMargin />
       </AuthorWrapper>
 
       <ContentWrapper $blur={!hasAccess}>
@@ -197,9 +217,9 @@ export const PostCard: React.FC<PostCardProps> = ({
           <PostTitle>{post.title}</PostTitle>
           <PostContent>{post.content}</PostContent>
         </TextContent>
-        {post.image && (
+        {thumbnail && (
           <Thumbnail>
-            <img src={post.image} alt="thumbnail" />
+            <img src={thumbnail} alt="thumbnail" />
           </Thumbnail>
         )}
       </ContentWrapper>
@@ -216,15 +236,15 @@ export const PostCard: React.FC<PostCardProps> = ({
       <ActionsRow $blur={!hasAccess}>
         <ActionButton $active={post.isLiked} onClick={handleLikeClick}>
           <ThumbsUp fill={post.isLiked ? "currentColor" : "none"} />
-          {post.likes}
+          {formatCount(post.likeCount)}
         </ActionButton>
         <ActionButton>
           <MessageCircle />
-          {post.comments}
+          {formatCount(post.commentCount)}
         </ActionButton>
         <ActionButton>
           <Eye />
-          1.2k
+          {formatCount(post.viewCount)}
         </ActionButton>
       </ActionsRow>
     </CardContainer>

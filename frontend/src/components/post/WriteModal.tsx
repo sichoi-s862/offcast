@@ -1,12 +1,26 @@
-import React, { useState, useRef } from 'react';
-import styled from 'styled-components';
-import { X, ImageIcon, Hash, ChevronDown } from 'lucide-react';
+import React, { useState, useRef, useCallback } from 'react';
+import styled, { keyframes } from 'styled-components';
+import { X, ImageIcon, Hash, ChevronDown, Loader2 } from 'lucide-react';
+import type { CurrentUser } from '../../types';
+import { useChannelStore, toast } from '../../stores';
+import { uploadImage } from '../../api';
+
+interface UploadedImage {
+  url: string;
+  key: string;
+}
 
 interface WriteModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (title: string, content: string, image: string | null) => void;
+  onSubmit: (title: string, content: string, images: UploadedImage[], channelId: string, hashtags: string[]) => void;
+  currentUser: CurrentUser;
 }
+
+const spin = keyframes`
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+`;
 
 const ModalOverlay = styled.div<{ $isOpen: boolean }>`
   position: fixed;
@@ -53,7 +67,9 @@ const CloseButton = styled.button`
 `;
 
 const SubmitButton = styled.button<{ $active: boolean }>`
-  padding: 8px 16px;
+  min-width: 56px;
+  height: 34px;
+  padding: 0 16px;
   border-radius: 9999px;
   font-weight: 700;
   font-size: 14px;
@@ -61,9 +77,18 @@ const SubmitButton = styled.button<{ $active: boolean }>`
   color: ${props => props.$active ? 'white' : '#6b7280'};
   cursor: ${props => props.$active ? 'pointer' : 'not-allowed'};
   transition: background-color 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 
   &:hover {
     background-color: ${props => props.$active ? '#6d28d9' : '#374151'};
+  }
+
+  svg {
+    width: 16px;
+    height: 16px;
+    animation: ${spin} 1s linear infinite;
   }
 `;
 
@@ -90,7 +115,7 @@ const Content = styled.div`
   padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 0;
   overflow-y: auto;
 `;
 
@@ -102,6 +127,7 @@ const TitleInput = styled.input`
   font-weight: 700;
   border: none;
   outline: none;
+  margin-bottom: 16px;
 
   &::placeholder {
     color: #4b5563;
@@ -110,8 +136,7 @@ const TitleInput = styled.input`
 
 const ContentTextarea = styled.textarea`
   width: 100%;
-  flex: 1;
-  min-height: 200px;
+  min-height: 60px;
   background-color: transparent;
   color: white;
   font-size: 16px;
@@ -119,41 +144,67 @@ const ContentTextarea = styled.textarea`
   outline: none;
   resize: none;
   line-height: 1.6;
+  overflow: hidden;
 
   &::placeholder {
     color: #4b5563;
   }
 `;
 
-const ImagePreviewContainer = styled.div`
+const ImagesContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+`;
+
+const ImageWrapper = styled.div`
   position: relative;
-  border-radius: 12px;
+  border-radius: 8px;
   overflow: hidden;
   border: 1px solid #374151;
 
   img {
+    display: block;
     width: 100%;
-    max-height: 300px;
-    object-fit: cover;
+    height: auto;
   }
 `;
 
-const RemoveImageButton = styled.button`
+const RemoveBtn = styled.button`
   position: absolute;
   top: 8px;
   right: 8px;
-  padding: 4px;
-  background-color: rgba(0, 0, 0, 0.6);
+  padding: 6px;
+  background-color: rgba(0, 0, 0, 0.7);
   border-radius: 50%;
   color: white;
 
   svg {
-    width: 16px;
-    height: 16px;
+    width: 18px;
+    height: 18px;
   }
 
   &:hover {
-    background-color: rgba(0, 0, 0, 0.8);
+    background-color: rgba(239, 68, 68, 0.8);
+  }
+`;
+
+const UploadingOverlay = styled.div`
+  position: absolute;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 14px;
+  gap: 8px;
+
+  svg {
+    width: 20px;
+    height: 20px;
+    animation: ${spin} 1s linear infinite;
   }
 `;
 
@@ -186,47 +237,166 @@ const HiddenFileInput = styled.input`
   display: none;
 `;
 
+const ChannelDropdown = styled.div`
+  position: absolute;
+  top: 56px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #1f2937;
+  border: 1px solid #374151;
+  border-radius: 8px;
+  overflow: hidden;
+  z-index: 70;
+  min-width: 200px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+`;
+
+const ChannelOption = styled.button<{ $selected?: boolean }>`
+  width: 100%;
+  padding: 12px 16px;
+  text-align: left;
+  font-size: 14px;
+  color: ${props => props.$selected ? '#7c3aed' : '#d1d5db'};
+  background-color: ${props => props.$selected ? 'rgba(124, 58, 237, 0.1)' : 'transparent'};
+
+  &:hover {
+    background-color: #374151;
+  }
+`;
+
+// 해시태그 추출 함수
+const extractHashtags = (content: string): string[] => {
+  const hashtagRegex = /#[\w가-힣]+/g;
+  const matches = content.match(hashtagRegex);
+  if (!matches) return [];
+  return [...new Set(matches.map(tag => tag.slice(1)))];
+};
+
 export const WriteModal: React.FC<WriteModalProps> = ({
   isOpen,
   onClose,
-  onSubmit
+  onSubmit,
+  currentUser
 }) => {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const [topic] = useState('자유 수다');
+  const [selectedImages, setSelectedImages] = useState<string[]>([]);
+  const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
+  const [selectedChannelId, setSelectedChannelId] = useState<string>('');
+  const [isChannelDropdownOpen, setIsChannelDropdownOpen] = useState(false);
+  const [uploadingIndex, setUploadingIndex] = useState<number | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const contentRef = useRef<HTMLTextAreaElement>(null);
 
+  const { channels } = useChannelStore();
+
+  // 접근 가능한 채널만 필터링
+  const accessibleChannels = channels.filter(
+    (ch) => currentUser.rawSubCount >= ch.minSubscribers
+  );
+
+  const selectedChannel = channels.find((ch) => ch.id === selectedChannelId);
   const isValid = title.trim() && content.trim();
+  const isUploading = uploadingIndex !== null;
+  const MAX_IMAGES = 5;
 
-  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const imageUrl = URL.createObjectURL(e.target.files[0]);
-      setSelectedImage(imageUrl);
+  const handleImageSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const files = Array.from(e.target.files);
+      const remainingSlots = MAX_IMAGES - selectedImages.length;
+      const filesToUpload = files.slice(0, remainingSlots);
+
+      // 먼저 모든 프리뷰 URL 생성
+      const previewUrls = filesToUpload.map(file => URL.createObjectURL(file));
+
+      // 프리뷰 이미지 한번에 추가
+      setSelectedImages(prev => [...prev, ...previewUrls]);
+
+      // 각 파일 업로드
+      for (let i = 0; i < filesToUpload.length; i++) {
+        const file = filesToUpload[i];
+        const currentIndex = selectedImages.length + i;
+
+        setUploadingIndex(currentIndex);
+
+        try {
+          const result = await uploadImage(file, 'posts');
+          setUploadedImages(prev => [...prev, { url: result.url, key: result.key }]);
+        } catch (error) {
+          console.error('Failed to upload image:', error);
+          // 실패한 이미지는 해당 프리뷰 URL로 찾아서 제거
+          const failedPreviewUrl = previewUrls[i];
+          setSelectedImages(prev => prev.filter(url => url !== failedPreviewUrl));
+        }
+      }
+      setUploadingIndex(null);
     }
-  };
+    // input 초기화 (같은 파일 다시 선택 가능)
+    if (e.target) e.target.value = '';
+  }, [selectedImages.length]);
 
-  const handleHashtag = () => {
-    setContent(prev => prev + " #");
+  const handleRemoveImage = useCallback((index: number) => {
+    setSelectedImages(prev => prev.filter((_, i) => i !== index));
+    setUploadedImages(prev => prev.filter((_, i) => i !== index));
+  }, []);
+
+  const handleHashtag = useCallback(() => {
+    setContent(prev => prev + ' #');
     contentRef.current?.focus();
-  };
+  }, []);
 
-  const handleSubmit = () => {
-    if (isValid) {
-      onSubmit(title, content, selectedImage);
+  const handleContentChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setContent(e.target.value);
+    // 자동 높이 조절
+    e.target.style.height = 'auto';
+    e.target.style.height = `${e.target.scrollHeight}px`;
+  }, []);
+
+  const handleSubmit = useCallback(async () => {
+    if (!isValid || isSubmitting) return;
+
+    // 채널 선택 필수 체크
+    if (!selectedChannelId) {
+      toast.warning('채널을 선택해주세요');
+      setIsChannelDropdownOpen(true);
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const hashtags = extractHashtags(content);
+
+      await onSubmit(title, content, uploadedImages, selectedChannelId, hashtags);
+
+      // 초기화
       setTitle('');
       setContent('');
-      setSelectedImage(null);
+      setSelectedImages([]);
+      setUploadedImages([]);
+      setSelectedChannelId('');
+    } catch (error) {
+      console.error('Failed to submit:', error);
+    } finally {
+      setIsSubmitting(false);
     }
-  };
+  }, [isValid, isSubmitting, title, content, uploadedImages, selectedChannelId, onSubmit]);
 
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     setTitle('');
     setContent('');
-    setSelectedImage(null);
+    setSelectedImages([]);
+    setUploadedImages([]);
+    setSelectedChannelId('');
+    setIsChannelDropdownOpen(false);
     onClose();
-  };
+  }, [onClose]);
+
+  const handleChannelSelect = useCallback((channelId: string) => {
+    setSelectedChannelId(channelId);
+    setIsChannelDropdownOpen(false);
+  }, []);
 
   return (
     <ModalOverlay $isOpen={isOpen}>
@@ -235,15 +405,37 @@ export const WriteModal: React.FC<WriteModalProps> = ({
           <CloseButton onClick={handleClose}>
             <X />
           </CloseButton>
-          <TopicSelector>
-            {topic} <ChevronDown />
+          <TopicSelector onClick={() => setIsChannelDropdownOpen(!isChannelDropdownOpen)}>
+            {selectedChannel?.name || '채널 선택'} <ChevronDown />
           </TopicSelector>
-          <SubmitButton $active={!!isValid} onClick={handleSubmit} disabled={!isValid}>
-            등록
+          <SubmitButton
+            $active={!!isValid && !isUploading}
+            onClick={handleSubmit}
+            disabled={!isValid || isUploading || isSubmitting}
+          >
+            {isSubmitting ? <Loader2 /> : '등록'}
           </SubmitButton>
         </Header>
 
-        <Content>
+        {isChannelDropdownOpen && (
+          <ChannelDropdown>
+            {accessibleChannels.length === 0 ? (
+              <ChannelOption disabled>접근 가능한 채널이 없습니다</ChannelOption>
+            ) : (
+              accessibleChannels.map((channel) => (
+                <ChannelOption
+                  key={channel.id}
+                  $selected={selectedChannelId === channel.id}
+                  onClick={() => handleChannelSelect(channel.id)}
+                >
+                  {channel.name}
+                </ChannelOption>
+              ))
+            )}
+          </ChannelDropdown>
+        )}
+
+        <Content onClick={() => setIsChannelDropdownOpen(false)}>
           <TitleInput
             type="text"
             placeholder="제목을 입력하세요"
@@ -252,22 +444,36 @@ export const WriteModal: React.FC<WriteModalProps> = ({
           />
           <ContentTextarea
             ref={contentRef}
-            placeholder="내용을 입력하세요"
+            placeholder="내용을 입력하세요 (#해시태그 사용 가능)"
             value={content}
-            onChange={e => setContent(e.target.value)}
+            onChange={handleContentChange}
           />
-          {selectedImage && (
-            <ImagePreviewContainer>
-              <img src={selectedImage} alt="Preview" />
-              <RemoveImageButton onClick={() => setSelectedImage(null)}>
-                <X />
-              </RemoveImageButton>
-            </ImagePreviewContainer>
+          {selectedImages.length > 0 && (
+            <ImagesContainer>
+              {selectedImages.map((image, index) => (
+                <ImageWrapper key={index}>
+                  <img src={image} alt={`Preview ${index + 1}`} />
+                  {uploadingIndex === index && (
+                    <UploadingOverlay>
+                      <Loader2 />
+                      업로드 중...
+                    </UploadingOverlay>
+                  )}
+                  <RemoveBtn onClick={() => handleRemoveImage(index)}>
+                    <X />
+                  </RemoveBtn>
+                </ImageWrapper>
+              ))}
+            </ImagesContainer>
           )}
         </Content>
 
         <Footer>
-          <FooterButton onClick={() => fileInputRef.current?.click()}>
+          <FooterButton
+            onClick={() => fileInputRef.current?.click()}
+            disabled={selectedImages.length >= MAX_IMAGES}
+            style={{ opacity: selectedImages.length >= MAX_IMAGES ? 0.5 : 1 }}
+          >
             <ImageIcon />
           </FooterButton>
           <FooterButton onClick={handleHashtag}>
@@ -277,6 +483,7 @@ export const WriteModal: React.FC<WriteModalProps> = ({
             ref={fileInputRef}
             type="file"
             accept="image/*"
+            multiple
             onChange={handleImageSelect}
           />
         </Footer>

@@ -140,8 +140,7 @@ export class CommentController {
     @CurrentUser() user: User,
     @Param('id') id: string,
   ) {
-    const liked = await this.commentService.toggleLike(id, user.id);
-    return { liked };
+    return this.commentService.toggleLike(id, user.id);
   }
 
   /**

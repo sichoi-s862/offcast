@@ -59,6 +59,30 @@ export class PostController {
   }
 
   /**
+   * 내 게시글 목록 조회
+   */
+  @Get('my')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '내 게시글 목록 조회' })
+  @ApiQuery({ name: 'page', required: false, description: '페이지 번호' })
+  @ApiQuery({ name: 'limit', required: false, description: '페이지 크기' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: '내 게시글 목록 반환',
+  })
+  async findMyPosts(
+    @CurrentUser() user: User,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.postService.findByAuthor(user.id, {
+      page: page ? parseInt(page, 10) : 1,
+      limit: limit ? parseInt(limit, 10) : 15,
+    });
+  }
+
+  /**
    * 게시글 상세 조회
    */
   @Public()
@@ -166,8 +190,7 @@ export class PostController {
     @CurrentUser() user: User,
     @Param('id') id: string,
   ) {
-    const liked = await this.postService.toggleLike(id, user.id);
-    return { liked };
+    return this.postService.toggleLike(id, user.id);
   }
 
   /**

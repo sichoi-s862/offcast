@@ -1,13 +1,32 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import styled, { keyframes } from 'styled-components';
-import { Check } from 'lucide-react';
+import { Check, Loader2 } from 'lucide-react';
 import { SubPageHeader } from '../../components/common/SubPageHeader';
 import { PlatformIcon } from '../../components/common/PlatformIcon';
+import { getMyInfo, getBlockedUsers } from '../../api';
 import type { CurrentUser } from '../../types';
 
 interface MyInfoPageProps {
   currentUser: CurrentUser;
   onBack: () => void;
+}
+
+interface MyInfoData {
+  user: {
+    id: string;
+    nickname: string;
+    status: string;
+    createdAt: string;
+    accounts: Array<{
+      provider: string;
+      profileName: string | null;
+      subscriberCount: number;
+    }>;
+  };
+  stats: {
+    postCount: number;
+    commentCount: number;
+  };
 }
 
 const slideIn = keyframes`
@@ -65,7 +84,93 @@ const CheckBadge = styled.div`
   }
 `;
 
+const LoadingContainer = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px;
+`;
+
+const Spinner = styled(Loader2)`
+  width: 32px;
+  height: 32px;
+  color: #7c3aed;
+  animation: spin 1s linear infinite;
+
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+`;
+
+const StatsRow = styled.div`
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+`;
+
+const StatCard = styled.div`
+  background-color: #111827;
+  border-radius: 12px;
+  border: 1px solid #1f2937;
+  padding: 16px;
+  text-align: center;
+`;
+
+const StatValue = styled.div`
+  font-size: 24px;
+  font-weight: 700;
+  color: white;
+  margin-bottom: 4px;
+`;
+
+const StatLabel = styled.div`
+  font-size: 12px;
+  color: #6b7280;
+`;
+
+const formatDate = (dateString: string): string => {
+  const date = new Date(dateString);
+  return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, '0')}.${String(date.getDate()).padStart(2, '0')}`;
+};
+
 export const MyInfoPage: React.FC<MyInfoPageProps> = ({ currentUser, onBack }) => {
+  const [myInfo, setMyInfo] = useState<MyInfoData | null>(null);
+  const [blockedCount, setBlockedCount] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [infoResult, blockedResult] = await Promise.all([
+          getMyInfo(),
+          getBlockedUsers({ page: 1, limit: 1 }),
+        ]);
+        setMyInfo(infoResult);
+        setBlockedCount(blockedResult.total || 0);
+      } catch (error) {
+        console.error('Failed to fetch my info:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  if (isLoading) {
+    return (
+      <Container>
+        <SubPageHeader title="내 정보" onBack={onBack} />
+        <LoadingContainer>
+          <Spinner />
+        </LoadingContainer>
+      </Container>
+    );
+  }
+
+  const account = myInfo?.user?.accounts?.[0];
+
   return (
     <Container>
       <SubPageHeader title="내 정보" onBack={onBack} />
@@ -73,8 +178,8 @@ export const MyInfoPage: React.FC<MyInfoPageProps> = ({ currentUser, onBack }) =
         <Field>
           <FieldLabel>연동된 계정</FieldLabel>
           <PlatformValue>
-            <PlatformIcon provider={currentUser.provider} size={24} />
-            {currentUser.provider}
+            <PlatformIcon provider={account?.provider || currentUser.provider} size={24} />
+            {account?.profileName || currentUser.nickname}
             <CheckBadge>
               <Check />
             </CheckBadge>
@@ -82,14 +187,39 @@ export const MyInfoPage: React.FC<MyInfoPageProps> = ({ currentUser, onBack }) =
         </Field>
         <Field>
           <FieldLabel>닉네임</FieldLabel>
-          <FieldValue>{currentUser.nickname}</FieldValue>
+          <FieldValue>{myInfo?.user?.nickname || currentUser.nickname}</FieldValue>
         </Field>
         <Field>
           <FieldLabel>구독자 수</FieldLabel>
           <FieldValue>
-            {currentUser.subscriberCount} (Raw: {currentUser.rawSubCount})
+            {account?.subscriberCount?.toLocaleString() || currentUser.subscriberCount}
           </FieldValue>
         </Field>
+        {myInfo?.user?.createdAt && (
+          <Field>
+            <FieldLabel>가입일</FieldLabel>
+            <FieldValue>{formatDate(myInfo.user.createdAt)}</FieldValue>
+          </Field>
+        )}
+        {myInfo?.stats && (
+          <Field>
+            <FieldLabel>활동 통계</FieldLabel>
+            <StatsRow>
+              <StatCard>
+                <StatValue>{myInfo.stats.postCount}</StatValue>
+                <StatLabel>작성 글</StatLabel>
+              </StatCard>
+              <StatCard>
+                <StatValue>{myInfo.stats.commentCount}</StatValue>
+                <StatLabel>작성 댓글</StatLabel>
+              </StatCard>
+              <StatCard>
+                <StatValue>{blockedCount}</StatValue>
+                <StatLabel>차단한 사용자</StatLabel>
+              </StatCard>
+            </StatsRow>
+          </Field>
+        )}
       </Content>
     </Container>
   );

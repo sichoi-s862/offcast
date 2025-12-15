@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
 import styled, { keyframes } from 'styled-components';
+import { Loader2 } from 'lucide-react';
 import { SubPageHeader } from '../../components/common/SubPageHeader';
-import type { CurrentUser } from '../../types';
+import { updateNickname } from '../../api';
+import { getErrorMessage } from '../../api/client';
+import type { CurrentUser, ApiUser } from '../../types';
 
 interface EditNickPageProps {
   currentUser: CurrentUser;
   onBack: () => void;
-  onUpdateNickname: (nickname: string) => void;
+  onUpdateNickname: (nickname: string, user?: ApiUser) => void;
 }
 
 const slideIn = keyframes`
@@ -48,19 +51,41 @@ const HelpText = styled.p`
   margin-bottom: 32px;
 `;
 
-const SaveButton = styled.button`
+const SaveButton = styled.button<{ $disabled?: boolean }>`
   width: 100%;
   padding: 16px;
-  background-color: #7c3aed;
+  background-color: ${props => props.$disabled ? '#374151' : '#7c3aed'};
   border-radius: 12px;
-  color: white;
+  color: ${props => props.$disabled ? '#6b7280' : 'white'};
   font-weight: 700;
   font-size: 16px;
   transition: background-color 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: ${props => props.$disabled ? 'not-allowed' : 'pointer'};
 
   &:hover {
-    background-color: #6d28d9;
+    background-color: ${props => props.$disabled ? '#374151' : '#6d28d9'};
   }
+`;
+
+const Spinner = styled(Loader2)`
+  width: 16px;
+  height: 16px;
+  animation: spin 1s linear infinite;
+
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+`;
+
+const ErrorText = styled.p`
+  font-size: 12px;
+  color: #f87171;
+  margin-bottom: 16px;
 `;
 
 export const EditNickPage: React.FC<EditNickPageProps> = ({
@@ -68,12 +93,27 @@ export const EditNickPage: React.FC<EditNickPageProps> = ({
   onBack,
   onUpdateNickname
 }) => {
-  const [val, setVal] = useState(currentUser.nickname);
+  const [val, setVal] = useState(currentUser.nickname || '');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSave = () => {
-    if (val.trim().length >= 2) {
-      onUpdateNickname(val);
+  const isValid = val.trim().length >= 2 && val.trim() !== (currentUser.nickname || '');
+
+  const handleSave = async () => {
+    if (!isValid || isSubmitting) return;
+
+    setIsSubmitting(true);
+    setError(null);
+
+    try {
+      const result = await updateNickname(val.trim());
+      onUpdateNickname(val.trim(), result.user);
       onBack();
+    } catch (err: unknown) {
+      const errorMessage = getErrorMessage(err, '닉네임 변경에 실패했습니다.');
+      setError(errorMessage);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -85,9 +125,17 @@ export const EditNickPage: React.FC<EditNickPageProps> = ({
           type="text"
           value={val}
           onChange={(e) => setVal(e.target.value)}
+          disabled={isSubmitting}
         />
         <HelpText>2자 이상 입력해주세요.</HelpText>
-        <SaveButton onClick={handleSave}>저장하기</SaveButton>
+        {error && <ErrorText>{error}</ErrorText>}
+        <SaveButton
+          $disabled={!isValid || isSubmitting}
+          onClick={handleSave}
+          disabled={!isValid || isSubmitting}
+        >
+          {isSubmitting ? <><Spinner /> 저장 중...</> : '저장하기'}
+        </SaveButton>
       </Content>
     </Container>
   );

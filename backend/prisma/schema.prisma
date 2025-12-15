@@ -117,7 +117,6 @@ model Account {
 // 지원 플랫폼
 enum Provider {
   YOUTUBE
-  INSTAGRAM
   TIKTOK
   CHZZK
   SOOP
@@ -449,4 +448,94 @@ model AppVersion {
   createdAt DateTime @default(now())
 
   @@index([version])
+}
+
+// ============================================
+// 차단 관련 모델
+// ============================================
+
+// 사용자 차단
+model UserBlock {
+  id            String   @id @default(uuid())
+  blockerId     String   // 차단한 사용자
+  blockedUserId String   // 차단당한 사용자
+
+  createdAt DateTime @default(now())
+
+  @@unique([blockerId, blockedUserId])
+  @@index([blockerId])
+  @@index([blockedUserId])
+}
+
+// ============================================
+// 고객지원 관련 모델
+// ============================================
+
+// 문의
+model Inquiry {
+  id        String       @id @default(uuid())
+  userId    String?      // 비회원 문의 가능
+  email     String?      // 비회원일 경우 이메일
+
+  category  InquiryCategory
+  title     String
+  content   String
+
+  // 답변
+  status    InquiryStatus @default(PENDING)
+  answer    String?
+  answeredAt DateTime?
+  answeredBy String?      // 답변한 관리자 ID
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@index([category])
+  @@index([createdAt(sort: Desc)])
+}
+
+// 문의 카테고리
+enum InquiryCategory {
+  GENERAL      // 일반 문의
+  BUG_REPORT   // 버그 신고
+  SUGGESTION   // 기능 제안
+  PARTNERSHIP  // 제휴 문의
+  ACCOUNT      // 계정 관련
+  OTHER        // 기타
+}
+
+// 문의 상태
+enum InquiryStatus {
+  PENDING    // 대기중
+  IN_PROGRESS // 처리중
+  ANSWERED   // 답변완료
+  CLOSED     // 종료
+}
+
+// FAQ (자주 묻는 질문)
+model Faq {
+  id        String     @id @default(uuid())
+  category  FaqCategory
+  question  String
+  answer    String
+
+  sortOrder Int        @default(0)
+  isActive  Boolean    @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([category, isActive, sortOrder])
+  @@index([isActive])
+}
+
+// FAQ 카테고리
+enum FaqCategory {
+  ACCOUNT    // 계정
+  COMMUNITY  // 커뮤니티
+  CHANNEL    // 채널/등급
+  REPORT     // 신고/차단
+  OTHER      // 기타
 }

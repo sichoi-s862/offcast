@@ -31,11 +31,26 @@ const FlexBetween = styled.div<{ $mb?: number }>`
   margin-bottom: ${props => props.$mb || 0}px;
 `;
 
-const SkeletonBox = styled(SkeletonBase)<{ $w?: string; $h?: string; $round?: boolean }>`
+const SkeletonBox = styled(SkeletonBase)<{ $w?: string; $h?: string; $round?: boolean; $radius?: number }>`
   width: ${props => props.$w || '100%'};
   height: ${props => props.$h || '16px'};
-  border-radius: ${props => props.$round ? '50%' : '4px'};
+  border-radius: ${props => props.$round ? '50%' : props.$radius ? `${props.$radius}px` : '4px'};
 `;
+
+// 범용 Skeleton 컴포넌트
+interface SkeletonProps {
+  width?: number | string;
+  height?: number | string;
+  borderRadius?: number;
+  round?: boolean;
+  style?: React.CSSProperties;
+}
+
+export const Skeleton: React.FC<SkeletonProps> = ({ width, height, borderRadius, round, style }) => {
+  const w = typeof width === 'number' ? `${width}px` : width;
+  const h = typeof height === 'number' ? `${height}px` : height;
+  return <SkeletonBox $w={w} $h={h} $radius={borderRadius} $round={round} style={style} />;
+};
 
 const SpaceY = styled.div<{ $gap?: number }>`
   display: flex;
@@ -99,4 +114,4 @@ export const DetailSkeleton: React.FC = () => (
   </DetailSkeletonContainer>
 );
 
-export default { PostSkeleton, DetailSkeleton };
+export default { Skeleton, PostSkeleton, DetailSkeleton };

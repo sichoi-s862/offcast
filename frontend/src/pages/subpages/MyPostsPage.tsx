@@ -1,19 +1,25 @@
-import React from 'react';
+import React, { useEffect, useCallback } from 'react';
 import styled, { keyframes } from 'styled-components';
-import { FileText, ThumbsUp, MessageCircle } from 'lucide-react';
+import { FileText, ThumbsUp, MessageCircle, Loader2, RefreshCw } from 'lucide-react';
 import { SubPageHeader } from '../../components/common/SubPageHeader';
-import type { Post, CurrentUser } from '../../types';
+import type { ApiPost, CurrentUser } from '../../types';
+import { usePostStore } from '../../stores';
+import { formatRelativeTime, formatCount } from '../../utils/format';
 
 interface MyPostsPageProps {
-  posts: Post[];
   currentUser: CurrentUser;
   onBack: () => void;
-  onPostClick: (post: Post) => void;
+  onPostClick: (post: ApiPost) => void;
 }
 
 const slideIn = keyframes`
   from { transform: translateX(100%); }
   to { transform: translateX(0); }
+`;
+
+const spin = keyframes`
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 `;
 
 const Container = styled.div`
@@ -96,35 +102,128 @@ const EmptyState = styled.div`
   }
 `;
 
+const LoadingState = styled.div`
+  padding: 60px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  color: #6b7280;
+
+  svg {
+    width: 32px;
+    height: 32px;
+    animation: ${spin} 1s linear infinite;
+  }
+`;
+
+const LoadMoreButton = styled.button`
+  width: 100%;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #7c3aed;
+  font-size: 14px;
+  border-top: 1px solid #1f2937;
+
+  &:hover {
+    background-color: rgba(124, 58, 237, 0.1);
+  }
+
+  svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  &.loading svg {
+    animation: ${spin} 1s linear infinite;
+  }
+`;
+
 export const MyPostsPage: React.FC<MyPostsPageProps> = ({
-  posts,
-  currentUser,
   onBack,
   onPostClick
 }) => {
-  const myPosts = posts.filter(p => p.authorInfo.includes(currentUser.nickname));
+  const {
+    myPosts,
+    total,
+    page,
+    isLoading,
+    isLoadingMore,
+    fetchMyPosts,
+  } = usePostStore();
+
+  // 컴포넌트 마운트 시 내 게시글 로드
+  useEffect(() => {
+    fetchMyPosts(1);
+  }, [fetchMyPosts]);
+
+  // 더 불러오기
+  const handleLoadMore = useCallback(() => {
+    if (!isLoadingMore) {
+      fetchMyPosts(page + 1, true);
+    }
+  }, [page, isLoadingMore, fetchMyPosts]);
+
+  const hasMore = myPosts.length < total;
+
+  // 로딩 상태
+  if (isLoading && myPosts.length === 0) {
+    return (
+      <Container>
+        <SubPageHeader title="내가 쓴 글" onBack={onBack} />
+        <LoadingState>
+          <Loader2 />
+          <span>불러오는 중...</span>
+        </LoadingState>
+      </Container>
+    );
+  }
 
   return (
     <Container>
       <SubPageHeader title="내가 쓴 글" onBack={onBack} />
       {myPosts.length > 0 ? (
-        <PostList>
-          {myPosts.map(post => (
-            <PostItem key={post.id} onClick={() => onPostClick(post)}>
-              <PostTitle>{post.title}</PostTitle>
-              <PostContent>{post.content}</PostContent>
-              <PostMeta>
-                <span>{post.time}</span>
-                <MetaItem>
-                  <ThumbsUp /> {post.likes}
-                </MetaItem>
-                <MetaItem>
-                  <MessageCircle /> {post.comments}
-                </MetaItem>
-              </PostMeta>
-            </PostItem>
-          ))}
-        </PostList>
+        <>
+          <PostList>
+            {myPosts.map(post => (
+              <PostItem key={post.id} onClick={() => onPostClick(post)}>
+                <PostTitle>{post.title}</PostTitle>
+                <PostContent>{post.content}</PostContent>
+                <PostMeta>
+                  <span>{formatRelativeTime(post.createdAt)}</span>
+                  <MetaItem>
+                    <ThumbsUp /> {formatCount(post.likeCount)}
+                  </MetaItem>
+                  <MetaItem>
+                    <MessageCircle /> {formatCount(post.commentCount)}
+                  </MetaItem>
+                </PostMeta>
+              </PostItem>
+            ))}
+          </PostList>
+          {hasMore && (
+            <LoadMoreButton
+              onClick={handleLoadMore}
+              className={isLoadingMore ? 'loading' : ''}
+              disabled={isLoadingMore}
+            >
+              {isLoadingMore ? (
+                <>
+                  <Loader2 />
+                  불러오는 중...
+                </>
+              ) : (
+                <>
+                  <RefreshCw />
+                  더 보기
+                </>
+              )}
+            </LoadMoreButton>
+          )}
+        </>
       ) : (
         <EmptyState>
           <FileText />

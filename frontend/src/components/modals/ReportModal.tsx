@@ -1,11 +1,18 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
+import { Loader2 } from 'lucide-react';
 import { REPORT_REASONS } from '../../constants';
+import { createReport, type CreateReportDto, type ReportTargetType, type ReportReason } from '../../api';
+import { getErrorMessage } from '../../api/client';
 
 interface ReportModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (reason: string) => void;
+  onSubmit: () => void;
+  targetType: ReportTargetType;
+  postId?: string;
+  commentId?: string;
+  targetUserId?: string;
 }
 
 const Overlay = styled.div`
@@ -122,6 +129,10 @@ const Button = styled.button<{ $primary?: boolean; $disabled?: boolean }>`
   font-weight: 700;
   font-size: 14px;
   transition: background-color 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 
   ${props => props.$primary ? `
     background-color: ${props.$disabled ? '#374151' : '#7c3aed'};
@@ -141,21 +152,69 @@ const Button = styled.button<{ $primary?: boolean; $disabled?: boolean }>`
   `}
 `;
 
-export const ReportModal: React.FC<ReportModalProps> = ({ isOpen, onClose, onSubmit }) => {
+const Spinner = styled(Loader2)`
+  width: 16px;
+  height: 16px;
+  animation: spin 1s linear infinite;
+
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+`;
+
+export const ReportModal: React.FC<ReportModalProps> = ({
+  isOpen,
+  onClose,
+  onSubmit,
+  targetType,
+  postId,
+  commentId,
+  targetUserId,
+}) => {
   const [selectedReason, setSelectedReason] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
-  const handleSubmit = () => {
-    if (selectedReason) {
-      onSubmit(selectedReason);
+  const handleSubmit = async () => {
+    if (!selectedReason) return;
+
+    setIsSubmitting(true);
+    setError(null);
+
+    try {
+      const reportData: CreateReportDto = {
+        targetType,
+        reason: selectedReason as ReportReason,
+        ...(postId && { postId }),
+        ...(commentId && { commentId }),
+        ...(targetUserId && { targetUserId }),
+      };
+
+      await createReport(reportData);
       setSelectedReason(null);
+      onSubmit();
+    } catch (err: unknown) {
+      const errorMessage = getErrorMessage(err, '신고 접수에 실패했습니다.');
+      setError(errorMessage);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleClose = () => {
+    if (!isSubmitting) {
+      setSelectedReason(null);
+      setError(null);
+      onClose();
     }
   };
 
   return (
     <Overlay>
-      <Backdrop onClick={onClose} />
+      <Backdrop onClick={handleClose} />
       <ModalContainer>
         <ModalHeader>
           <ModalTitle>신고하기</ModalTitle>
@@ -164,28 +223,34 @@ export const ReportModal: React.FC<ReportModalProps> = ({ isOpen, onClose, onSub
         <ModalBody>
           {REPORT_REASONS.map((reason, idx) => (
             <RadioLabel key={idx}>
-              <RadioCircle $selected={selectedReason === reason}>
-                {selectedReason === reason && <RadioDot />}
+              <RadioCircle $selected={selectedReason === reason.value}>
+                {selectedReason === reason.value && <RadioDot />}
               </RadioCircle>
               <RadioInput
                 type="radio"
                 name="report"
-                checked={selectedReason === reason}
-                onChange={() => setSelectedReason(reason)}
+                checked={selectedReason === reason.value}
+                onChange={() => setSelectedReason(reason.value)}
+                disabled={isSubmitting}
               />
-              <RadioText $selected={selectedReason === reason}>{reason}</RadioText>
+              <RadioText $selected={selectedReason === reason.value}>{reason.label}</RadioText>
             </RadioLabel>
           ))}
+          {error && (
+            <RadioText $selected={false} style={{ color: '#f87171', marginTop: '8px' }}>
+              {error}
+            </RadioText>
+          )}
         </ModalBody>
         <ModalFooter>
-          <Button onClick={onClose}>취소</Button>
+          <Button onClick={handleClose} disabled={isSubmitting}>취소</Button>
           <Button
             $primary
-            $disabled={!selectedReason}
+            $disabled={!selectedReason || isSubmitting}
             onClick={handleSubmit}
-            disabled={!selectedReason}
+            disabled={!selectedReason || isSubmitting}
           >
-            신고
+            {isSubmitting ? <><Spinner /> 처리중...</> : '신고'}
           </Button>
         </ModalFooter>
       </ModalContainer>

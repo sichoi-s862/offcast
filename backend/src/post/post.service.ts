@@ -134,6 +134,58 @@ export class PostService {
   }
 
   /**
+   * 특정 사용자의 게시글 목록 조회
+   */
+  async findByAuthor(
+    authorId: string,
+    options: { page?: number; limit?: number } = {},
+  ): Promise<PostListResponse> {
+    const page = Math.max(1, options.page || 1);
+    const limit = Math.min(50, Math.max(1, options.limit || 15));
+    const skip = (page - 1) * limit;
+
+    const where: Prisma.PostWhereInput = {
+      authorId,
+      status: PostStatus.ACTIVE,
+      deletedAt: null,
+    };
+
+    const [posts, total] = await Promise.all([
+      this.prisma.post.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+        include: {
+          author: {
+            select: { id: true, nickname: true },
+          },
+          channel: true,
+          images: {
+            orderBy: { order: 'asc' },
+            take: 1,
+          },
+          hashtags: {
+            include: { hashtag: true },
+          },
+          _count: {
+            select: { comments: true, likes: true },
+          },
+        },
+      }),
+      this.prisma.post.count({ where }),
+    ]);
+
+    return {
+      posts,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
+
+  /**
    * 게시글 상세 조회
    */
   async findById(id: string): Promise<PostWithDetails | null> {
@@ -337,16 +389,18 @@ export class PostService {
   /**
    * 좋아요 토글
    */
-  async toggleLike(postId: string, userId: string): Promise<boolean> {
+  async toggleLike(postId: string, userId: string): Promise<{ liked: boolean; likeCount: number }> {
     const existingLike = await this.prisma.postLike.findUnique({
       where: {
         postId_userId: { postId, userId },
       },
     });
 
+    let updatedPost;
+
     if (existingLike) {
       // 좋아요 취소
-      await this.prisma.$transaction([
+      const [, post] = await this.prisma.$transaction([
         this.prisma.postLike.delete({
           where: { id: existingLike.id },
         }),
@@ -355,10 +409,11 @@ export class PostService {
           data: { likeCount: { decrement: 1 } },
         }),
       ]);
-      return false;
+      updatedPost = post;
+      return { liked: false, likeCount: updatedPost.likeCount };
     } else {
       // 좋아요 추가
-      await this.prisma.$transaction([
+      const [, post] = await this.prisma.$transaction([
         this.prisma.postLike.create({
           data: { postId, userId },
         }),
@@ -367,7 +422,8 @@ export class PostService {
           data: { likeCount: { increment: 1 } },
         }),
       ]);
-      return true;
+      updatedPost = post;
+      return { liked: true, likeCount: updatedPost.likeCount };
     }
   }
 

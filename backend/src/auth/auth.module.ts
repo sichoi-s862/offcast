@@ -8,7 +8,6 @@ import { JwtStrategy } from './jwt.strategy';
 import { YouTubeStrategy } from './strategies/youtube.strategy';
 import { TikTokStrategy } from './strategies/tiktok.strategy';
 import { SoopStrategy } from './strategies/soop.strategy';
-import { InstagramStrategy } from './strategies/instagram.strategy';
 import { ChzzkStrategy } from './strategies/chzzk.strategy';
 import { UserModule } from '../user/user.module';
 
@@ -33,7 +32,6 @@ import { UserModule } from '../user/user.module';
     YouTubeStrategy,
     TikTokStrategy,
     SoopStrategy,
-    InstagramStrategy,
     ChzzkStrategy,
   ],
   controllers: [AuthController],

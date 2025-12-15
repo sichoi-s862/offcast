@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import styled, { keyframes } from 'styled-components';
+import { Loader2 } from 'lucide-react';
 import { SubPageHeader } from '../../components/common/SubPageHeader';
-import { FAQS } from '../../constants';
+import { getFaqs, type FaqResponse } from '../../api';
 
 interface CustomerCenterPageProps {
   onBack: () => void;
@@ -55,19 +56,82 @@ const Answer = styled.p`
   padding-left: 20px;
 `;
 
+const LoadingContainer = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 48px 0;
+`;
+
+const Spinner = styled(Loader2)`
+  color: #6b7280;
+  animation: spin 1s linear infinite;
+
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+`;
+
+const EmptyMessage = styled.p`
+  text-align: center;
+  color: #6b7280;
+  padding: 48px 0;
+  font-size: 14px;
+`;
+
+const ErrorMessage = styled.p`
+  text-align: center;
+  color: #f87171;
+  padding: 48px 0;
+  font-size: 14px;
+`;
+
 export const CustomerCenterPage: React.FC<CustomerCenterPageProps> = ({ onBack }) => {
+  const [faqs, setFaqs] = useState<FaqResponse[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchFaqs = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        const response = await getFaqs();
+        setFaqs(response.faqs);
+      } catch (err) {
+        console.error('FAQ 로딩 실패:', err);
+        setError('FAQ를 불러오는데 실패했습니다.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchFaqs();
+  }, []);
+
   return (
     <Container>
       <SubPageHeader title="고객센터" onBack={onBack} />
       <Content>
-        {FAQS.map((faq, i) => (
-          <FaqCard key={i}>
-            <Question>
-              <QuestionMark>Q.</QuestionMark> {faq.q}
-            </Question>
-            <Answer>A. {faq.a}</Answer>
-          </FaqCard>
-        ))}
+        {isLoading ? (
+          <LoadingContainer>
+            <Spinner size={32} />
+          </LoadingContainer>
+        ) : error ? (
+          <ErrorMessage>{error}</ErrorMessage>
+        ) : faqs.length === 0 ? (
+          <EmptyMessage>등록된 FAQ가 없습니다.</EmptyMessage>
+        ) : (
+          faqs.map((faq) => (
+            <FaqCard key={faq.id}>
+              <Question>
+                <QuestionMark>Q.</QuestionMark> {faq.question}
+              </Question>
+              <Answer>A. {faq.answer}</Answer>
+            </FaqCard>
+          ))
+        )}
       </Content>
     </Container>
   );

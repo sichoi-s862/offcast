@@ -247,16 +247,18 @@ export class CommentService {
   /**
    * 좋아요 토글
    */
-  async toggleLike(commentId: string, userId: string): Promise<boolean> {
+  async toggleLike(commentId: string, userId: string): Promise<{ liked: boolean; likeCount: number }> {
     const existingLike = await this.prisma.commentLike.findUnique({
       where: {
         commentId_userId: { commentId, userId },
       },
     });
 
+    let updatedComment;
+
     if (existingLike) {
       // 좋아요 취소
-      await this.prisma.$transaction([
+      const [, comment] = await this.prisma.$transaction([
         this.prisma.commentLike.delete({
           where: { id: existingLike.id },
         }),
@@ -265,10 +267,11 @@ export class CommentService {
           data: { likeCount: { decrement: 1 } },
         }),
       ]);
-      return false;
+      updatedComment = comment;
+      return { liked: false, likeCount: updatedComment.likeCount };
     } else {
       // 좋아요 추가
-      await this.prisma.$transaction([
+      const [, comment] = await this.prisma.$transaction([
         this.prisma.commentLike.create({
           data: { commentId, userId },
         }),
@@ -277,7 +280,8 @@ export class CommentService {
           data: { likeCount: { increment: 1 } },
         }),
       ]);
-      return true;
+      updatedComment = comment;
+      return { liked: true, likeCount: updatedComment.likeCount };
     }
   }
 

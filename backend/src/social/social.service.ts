@@ -1,18 +1,17 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Provider } from '@prisma/client';
 import { UserService } from '../user/user.service';
 import { YouTubeProvider, YouTubeStats } from './providers/youtube.provider';
 import { TikTokProvider, TikTokStats } from './providers/tiktok.provider';
 import { SoopProvider, SoopStats } from './providers/soop.provider';
-import { InstagramProvider, InstagramStats } from './providers/instagram.provider';
 import { ChzzkProvider, ChzzkStats } from './providers/chzzk.provider';
 
-export type Provider = 'youtube' | 'tiktok' | 'soop' | 'instagram' | 'chzzk';
+export type SocialProvider = 'youtube' | 'tiktok' | 'soop' | 'chzzk';
 
 export interface AllStats {
   youtube?: YouTubeStats;
   tiktok?: TikTokStats;
   soop?: SoopStats;
-  instagram?: InstagramStats;
   chzzk?: ChzzkStats;
 }
 
@@ -23,12 +22,11 @@ export class SocialService {
     private youtubeProvider: YouTubeProvider,
     private tiktokProvider: TikTokProvider,
     private soopProvider: SoopProvider,
-    private instagramProvider: InstagramProvider,
     private chzzkProvider: ChzzkProvider,
   ) {}
 
   async getYouTubeStats(userId: string): Promise<YouTubeStats> {
-    const account = await this.userService.getAccountByProvider(userId, 'youtube');
+    const account = await this.userService.getAccountByProvider(userId, Provider.YOUTUBE);
     if (!account) {
       throw new NotFoundException('YouTube account not linked');
     }
@@ -36,7 +34,7 @@ export class SocialService {
   }
 
   async getTikTokStats(userId: string): Promise<TikTokStats> {
-    const account = await this.userService.getAccountByProvider(userId, 'tiktok');
+    const account = await this.userService.getAccountByProvider(userId, Provider.TIKTOK);
     if (!account) {
       throw new NotFoundException('TikTok account not linked');
     }
@@ -44,23 +42,15 @@ export class SocialService {
   }
 
   async getSoopStats(userId: string): Promise<SoopStats> {
-    const account = await this.userService.getAccountByProvider(userId, 'soop');
+    const account = await this.userService.getAccountByProvider(userId, Provider.SOOP);
     if (!account) {
       throw new NotFoundException('SOOP account not linked');
     }
     return this.soopProvider.getStats(account.accessToken);
   }
 
-  async getInstagramStats(userId: string): Promise<InstagramStats> {
-    const account = await this.userService.getAccountByProvider(userId, 'instagram');
-    if (!account) {
-      throw new NotFoundException('Instagram account not linked');
-    }
-    return this.instagramProvider.getStats(account.accessToken);
-  }
-
   async getChzzkStats(userId: string): Promise<ChzzkStats> {
-    const account = await this.userService.getAccountByProvider(userId, 'chzzk');
+    const account = await this.userService.getAccountByProvider(userId, Provider.CHZZK);
     if (!account) {
       throw new NotFoundException('Chzzk account not linked');
     }
@@ -69,8 +59,8 @@ export class SocialService {
 
   async getStatsByProvider(
     userId: string,
-    provider: Provider,
-  ): Promise<YouTubeStats | TikTokStats | SoopStats | InstagramStats | ChzzkStats> {
+    provider: SocialProvider,
+  ): Promise<YouTubeStats | TikTokStats | SoopStats | ChzzkStats> {
     switch (provider) {
       case 'youtube':
         return this.getYouTubeStats(userId);
@@ -78,8 +68,6 @@ export class SocialService {
         return this.getTikTokStats(userId);
       case 'soop':
         return this.getSoopStats(userId);
-      case 'instagram':
-        return this.getInstagramStats(userId);
       case 'chzzk':
         return this.getChzzkStats(userId);
       default:
@@ -94,7 +82,7 @@ export class SocialService {
     const promises: Promise<void>[] = [];
 
     for (const account of accounts) {
-      const provider = account.provider as Provider;
+      const provider = account.provider.toLowerCase() as SocialProvider;
 
       const fetchStats = async () => {
         try {
@@ -107,9 +95,6 @@ export class SocialService {
               break;
             case 'soop':
               stats.soop = await this.soopProvider.getStats(account.accessToken);
-              break;
-            case 'instagram':
-              stats.instagram = await this.instagramProvider.getStats(account.accessToken);
               break;
             case 'chzzk':
               stats.chzzk = await this.chzzkProvider.getStats(account.accessToken);

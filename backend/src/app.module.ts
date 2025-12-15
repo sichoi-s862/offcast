@@ -11,6 +11,8 @@ import { CommentModule } from './comment/comment.module';
 import { HashtagModule } from './hashtag/hashtag.module';
 import { UploadModule } from './upload/upload.module';
 import { HealthModule } from './health/health.module';
+import { ReportModule } from './report/report.module';
+import { SupportModule } from './support/support.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 
 @Module({
@@ -29,6 +31,8 @@ import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
     HashtagModule,
     UploadModule,
     HealthModule,
+    ReportModule,
+    SupportModule,
   ],
   providers: [
     {

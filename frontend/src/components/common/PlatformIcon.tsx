@@ -3,7 +3,6 @@ import styled from 'styled-components';
 import { Briefcase } from 'lucide-react';
 
 import youtubeIcon from '../../assets/youtube_icon.svg';
-import instagramIcon from '../../assets/insta_icon.svg';
 import tiktokIcon from '../../assets/tiktok_icon.svg';
 import chzzkIcon from '../../assets/chzzk_icon.svg';
 import soopIcon from '../../assets/soop_icon.svg';
@@ -17,7 +16,6 @@ interface PlatformIconProps {
 const getMarginLeft = (provider: string): string => {
   switch (provider.toLowerCase()) {
     case 'youtube': return '-5px';
-    case 'instagram': return '-6px';
     case 'tiktok': return '-6px';
     case 'chzzk': return '-6px';
     case 'soop': return '-2px';
@@ -57,7 +55,6 @@ const FallbackWrapper = styled.span<{ $size: number }>`
 const getIconByProvider = (provider: string): string | null => {
   switch (provider.toLowerCase()) {
     case 'youtube': return youtubeIcon;
-    case 'instagram': return instagramIcon;
     case 'tiktok': return tiktokIcon;
     case 'chzzk': return chzzkIcon;
     case 'soop': return soopIcon;

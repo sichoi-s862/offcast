@@ -165,6 +165,7 @@ export class ChannelService {
    */
   async seedDefaultChannels(): Promise<void> {
     const defaultChannels: CreateChannelDto[] = [
+      // 등급별 라운지
       {
         name: '자유 게시판',
         slug: 'free',
@@ -192,6 +193,77 @@ export class ChannelService {
         description: '구독자 100만 이상 크리에이터 전용',
         minSubscribers: 1000000,
         sortOrder: 3,
+      },
+      // 크리에이터 관심 주제
+      {
+        name: '수익화/광고',
+        slug: 'monetization',
+        description: '광고 수익, 스폰서십, 협찬 관련 정보 공유',
+        minSubscribers: 1000,
+        sortOrder: 10,
+      },
+      {
+        name: '장비/세팅',
+        slug: 'gear',
+        description: '카메라, 마이크, 조명, 편집 장비 추천',
+        minSubscribers: 0,
+        sortOrder: 11,
+      },
+      {
+        name: '편집/썸네일',
+        slug: 'editing',
+        description: '영상 편집, 썸네일 디자인 팁 공유',
+        minSubscribers: 0,
+        sortOrder: 12,
+      },
+      {
+        name: '알고리즘/성장',
+        slug: 'growth',
+        description: '조회수, 구독자 성장 전략 논의',
+        minSubscribers: 1000,
+        sortOrder: 13,
+      },
+      {
+        name: '저작권/법률',
+        slug: 'legal',
+        description: '저작권, 계약서, 세금 관련 정보',
+        minSubscribers: 0,
+        sortOrder: 14,
+      },
+      {
+        name: 'MCN/소속사',
+        slug: 'mcn',
+        description: 'MCN 계약, 소속사 경험담 공유',
+        minSubscribers: 5000,
+        sortOrder: 15,
+      },
+      {
+        name: '번아웃/멘탈관리',
+        slug: 'mental-health',
+        description: '번아웃 극복, 악플 대처, 멘탈 관리',
+        minSubscribers: 0,
+        sortOrder: 16,
+      },
+      {
+        name: '콜라보/네트워킹',
+        slug: 'collab',
+        description: '콜라보 파트너 찾기, 크리에이터 모임',
+        minSubscribers: 5000,
+        sortOrder: 17,
+      },
+      {
+        name: '라이브/스트리밍',
+        slug: 'streaming',
+        description: '라이브 방송 노하우, 후원 시스템',
+        minSubscribers: 0,
+        sortOrder: 18,
+      },
+      {
+        name: '쇼츠/릴스',
+        slug: 'shorts',
+        description: '숏폼 콘텐츠 제작 팁',
+        minSubscribers: 0,
+        sortOrder: 19,
       },
     ];
 
