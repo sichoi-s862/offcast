@@ -1,30 +1,45 @@
 import { Injectable, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { User, Account } from '@prisma/client';
+import { User, Account, Provider } from '@prisma/client';
 
+/**
+ * OAuth 프로필 인터페이스
+ * - 소셜 로그인 시 전달되는 프로필 정보
+ */
 export interface OAuthProfile {
-  provider: string;
+  provider: Provider;
   providerAccountId: string;
   accessToken: string;
   refreshToken?: string;
   expiresAt?: Date;
   profileName?: string;
   profileImage?: string;
+  subscriberCount?: number;
 }
 
+/**
+ * 사용자 서비스
+ * - 사용자 CRUD 및 OAuth 계정 관리
+ */
 @Injectable()
 export class UserService {
   constructor(private prisma: PrismaService) {}
 
+  /**
+   * ID로 사용자 조회 (계정 정보 포함)
+   */
   async findById(id: string): Promise<User | null> {
     return this.prisma.user.findUnique({
-      where: { id },
+      where: { id, deletedAt: null },
       include: { accounts: true },
     });
   }
 
+  /**
+   * 소셜 계정으로 사용자 조회
+   */
   async findByProviderAccount(
-    provider: string,
+    provider: Provider,
     providerAccountId: string,
   ): Promise<User | null> {
     const account = await this.prisma.account.findUnique({
@@ -36,9 +51,19 @@ export class UserService {
       },
       include: { user: true },
     });
+
+    // 탈퇴한 사용자는 제외
+    if (account?.user?.deletedAt) {
+      return null;
+    }
+
     return account?.user ?? null;
   }
 
+  /**
+   * OAuth 로그인 처리
+   * - 기존 사용자면 토큰 갱신, 신규면 사용자 생성
+   */
   async findOrCreateByOAuth(profile: OAuthProfile): Promise<User> {
     const existingUser = await this.findByProviderAccount(
       profile.provider,
@@ -46,6 +71,7 @@ export class UserService {
     );
 
     if (existingUser) {
+      // 기존 사용자: 토큰 및 프로필 정보 갱신
       await this.prisma.account.update({
         where: {
           provider_providerAccountId: {
@@ -59,11 +85,13 @@ export class UserService {
           expiresAt: profile.expiresAt,
           profileName: profile.profileName,
           profileImage: profile.profileImage,
+          subscriberCount: profile.subscriberCount,
         },
       });
       return existingUser;
     }
 
+    // 신규 사용자 생성
     return this.prisma.user.create({
       data: {
         accounts: {
@@ -75,6 +103,7 @@ export class UserService {
             expiresAt: profile.expiresAt,
             profileName: profile.profileName,
             profileImage: profile.profileImage,
+            subscriberCount: profile.subscriberCount,
           },
         },
       },
@@ -82,6 +111,9 @@ export class UserService {
     });
   }
 
+  /**
+   * 기존 사용자에게 소셜 계정 연결
+   */
   async linkAccount(userId: string, profile: OAuthProfile): Promise<Account> {
     const existingAccount = await this.prisma.account.findUnique({
       where: {
@@ -93,9 +125,12 @@ export class UserService {
     });
 
     if (existingAccount) {
+      // 다른 사용자에게 이미 연결된 계정인 경우
       if (existingAccount.userId !== userId) {
-        throw new ConflictException('This account is already linked to another user');
+        throw new ConflictException('이 계정은 이미 다른 사용자에게 연결되어 있습니다');
       }
+
+      // 같은 사용자면 정보 갱신
       return this.prisma.account.update({
         where: { id: existingAccount.id },
         data: {
@@ -104,10 +139,12 @@ export class UserService {
           expiresAt: profile.expiresAt,
           profileName: profile.profileName,
           profileImage: profile.profileImage,
+          subscriberCount: profile.subscriberCount,
         },
       });
     }
 
+    // 새 계정 연결
     return this.prisma.account.create({
       data: {
         userId,
@@ -118,28 +155,76 @@ export class UserService {
         expiresAt: profile.expiresAt,
         profileName: profile.profileName,
         profileImage: profile.profileImage,
+        subscriberCount: profile.subscriberCount,
       },
     });
   }
 
+  /**
+   * 사용자의 모든 연결된 계정 조회
+   */
   async getAccounts(userId: string): Promise<Account[]> {
     return this.prisma.account.findMany({
       where: { userId },
     });
   }
 
+  /**
+   * 사용자의 특정 플랫폼 계정 조회
+   */
   async getAccountByProvider(
     userId: string,
-    provider: string,
+    provider: Provider,
   ): Promise<Account | null> {
     return this.prisma.account.findFirst({
       where: { userId, provider },
     });
   }
 
-  async unlinkAccount(userId: string, provider: string): Promise<void> {
+  /**
+   * 소셜 계정 연결 해제
+   */
+  async unlinkAccount(userId: string, provider: Provider): Promise<void> {
     await this.prisma.account.deleteMany({
       where: { userId, provider },
+    });
+  }
+
+  /**
+   * 사용자의 최대 구독자 수 조회
+   * - 여러 플랫폼 중 가장 높은 구독자 수 반환
+   */
+  async getMaxSubscriberCount(userId: string): Promise<number> {
+    const accounts = await this.prisma.account.findMany({
+      where: { userId },
+      select: { subscriberCount: true },
+    });
+
+    return accounts.reduce((max, account) => {
+      return Math.max(max, account.subscriberCount || 0);
+    }, 0);
+  }
+
+  /**
+   * 닉네임 업데이트
+   */
+  async updateNickname(userId: string, nickname: string): Promise<User> {
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: { nickname },
+    });
+  }
+
+  /**
+   * 회원 탈퇴 (소프트 삭제)
+   */
+  async withdraw(userId: string): Promise<void> {
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        status: 'WITHDRAWN',
+        deletedAt: new Date(),
+      },
     });
   }
 }

@@ -1,33 +1,452 @@
+// Prisma 스키마 - Offcast 크리에이터 익명 커뮤니티
+// 설계 원칙: 확장성, 검색 최적화, 실시간 동접 지원
+
 generator client {
-  provider   = "prisma-client-js"
-  engineType = "library"
+  provider        = "prisma-client-js"
+  engineType      = "library"
+  previewFeatures = ["fullTextSearchPostgres"]
 }
 
 datasource db {
   provider = "postgresql"
 }
 
+// ============================================
+// 사용자 관련 모델
+// ============================================
+
+// 사용자 기본 정보
 model User {
-  id        String    @id @default(uuid())
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  accounts  Account[]
+  id        String   @id @default(uuid())
+  nickname  String?  // 익명 닉네임 (자동 생성 또는 사용자 설정)
+  role      UserRole @default(USER)
+  status    UserStatus @default(ACTIVE)
+
+  // 약관 동의 정보 (확장성을 위해 별도 테이블로 분리)
+  agreements UserAgreement[]
+
+  // 연결된 소셜 계정
+  accounts Account[]
+
+  // 작성한 컨텐츠
+  posts    Post[]
+  comments Comment[]
+
+  // 좋아요
+  postLikes    PostLike[]
+  commentLikes CommentLike[]
+
+  // 신고
+  reports      Report[]     @relation("Reporter")
+  reportedBy   Report[]     @relation("ReportedUser")
+
+  // 채널 접근 권한 (구독자 수 기반)
+  channelAccesses ChannelAccess[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime? // 소프트 삭제 (회원 탈퇴)
+
+  @@index([status])
+  @@index([deletedAt])
+  @@index([createdAt])
 }
 
+// 사용자 역할
+enum UserRole {
+  USER      // 일반 사용자
+  MODERATOR // 운영자
+  ADMIN     // 관리자
+}
+
+// 사용자 상태
+enum UserStatus {
+  ACTIVE    // 활성
+  SUSPENDED // 정지
+  WITHDRAWN // 탈퇴
+}
+
+// 약관 동의 정보 (확장 가능)
+model UserAgreement {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  agreementType AgreementType
+  agreedAt      DateTime @default(now())
+  version       String   // 약관 버전
+
+  @@unique([userId, agreementType])
+  @@index([userId])
+}
+
+// 약관 종류
+enum AgreementType {
+  TERMS_OF_SERVICE  // 서비스 이용약관
+  PRIVACY_POLICY    // 개인정보처리방침
+  MARKETING         // 마케팅 수신 동의
+}
+
+// OAuth 계정 정보
 model Account {
   id                String    @id @default(uuid())
   userId            String
   user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  provider          String    // youtube, tiktok, soop, instagram, chzzk
-  providerAccountId String
+
+  provider          Provider  // 플랫폼 종류
+  providerAccountId String    // 플랫폼 내 고유 ID
+
+  // 토큰 정보
   accessToken       String
   refreshToken      String?
   expiresAt         DateTime?
+
+  // 프로필 정보 (캐싱)
   profileName       String?
   profileImage      String?
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  subscriberCount   Int?      // 구독자/팔로워 수 (채널 접근 권한 판단용)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([provider, providerAccountId])
   @@index([userId])
+  @@index([provider])
+}
+
+// 지원 플랫폼
+enum Provider {
+  YOUTUBE
+  INSTAGRAM
+  TIKTOK
+  CHZZK
+  SOOP
+}
+
+// ============================================
+// 채널 관련 모델
+// ============================================
+
+// 채널 (구독자 수 기반 라운지)
+model Channel {
+  id          String   @id @default(uuid())
+  name        String   // 예: "10만 라운지", "100만 라운지"
+  slug        String   @unique // URL용 슬러그
+  description String?
+
+  // 접근 조건
+  minSubscribers Int   // 최소 구독자 수
+  maxSubscribers Int?  // 최대 구독자 수 (null이면 제한 없음)
+
+  // 채널 설정
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0) // 정렬 순서
+
+  // 연결된 게시글
+  posts Post[]
+
+  // 채널 접근 권한
+  accesses ChannelAccess[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive, sortOrder])
+  @@index([minSubscribers])
+}
+
+// 채널 접근 권한 (사용자별 캐싱)
+model ChannelAccess {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  channelId String
+  channel   Channel  @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  // 접근 권한 만료 시간 (정기 갱신 필요)
+  expiresAt DateTime
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, channelId])
+  @@index([userId])
+  @@index([channelId])
+  @@index([expiresAt])
+}
+
+// ============================================
+// 게시글 관련 모델
+// ============================================
+
+// 게시글
+model Post {
+  id        String     @id @default(uuid())
+  authorId  String
+  author    User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  channelId String
+  channel   Channel    @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  // 컨텐츠
+  title     String
+  content   String
+
+  // 이미지 (S3 URL)
+  images    PostImage[]
+
+  // 해시태그
+  hashtags  PostHashtag[]
+
+  // 통계 (카운터 캐싱 - 성능 최적화)
+  viewCount    Int @default(0)
+  likeCount    Int @default(0)
+  commentCount Int @default(0)
+
+  // 상태
+  status    PostStatus @default(ACTIVE)
+
+  // 좋아요, 댓글
+  likes    PostLike[]
+  comments Comment[]
+
+  // 신고
+  reports  Report[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime? // 소프트 삭제
+
+  // 검색 최적화 인덱스
+  @@index([channelId, status, createdAt(sort: Desc)])
+  @@index([authorId])
+  @@index([status])
+  @@index([createdAt(sort: Desc)])
+  @@index([likeCount(sort: Desc)])
+  @@index([viewCount(sort: Desc)])
+  @@index([deletedAt])
+}
+
+// 게시글 상태
+enum PostStatus {
+  ACTIVE  // 활성
+  HIDDEN  // 숨김 (작성자가 숨김)
+  DELETED // 삭제됨
+  BLOCKED // 신고로 차단됨
+}
+
+// 게시글 이미지
+model PostImage {
+  id       String @id @default(uuid())
+  postId   String
+  post     Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  url      String // S3 URL
+  key      String // S3 Key (삭제용)
+  order    Int    @default(0) // 이미지 순서
+
+  createdAt DateTime @default(now())
+
+  @@index([postId, order])
+}
+
+// 게시글 좋아요
+model PostLike {
+  id     String @id @default(uuid())
+  postId String
+  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([postId, userId])
+  @@index([postId])
+  @@index([userId])
+}
+
+// ============================================
+// 댓글 관련 모델
+// ============================================
+
+// 댓글
+model Comment {
+  id       String  @id @default(uuid())
+  postId   String
+  post     Post    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  authorId String
+  author   User    @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  // 대댓글 (자기 참조)
+  parentId String?
+  parent   Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies  Comment[] @relation("CommentReplies")
+
+  // 컨텐츠
+  content  String
+
+  // 이미지 (S3 URL, 단일)
+  imageUrl String?
+  imageKey String?
+
+  // 통계 (카운터 캐싱)
+  likeCount Int @default(0)
+
+  // 상태
+  status   CommentStatus @default(ACTIVE)
+
+  // 좋아요
+  likes    CommentLike[]
+
+  // 신고
+  reports  Report[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime? // 소프트 삭제
+
+  @@index([postId, status, createdAt])
+  @@index([parentId])
+  @@index([authorId])
+  @@index([deletedAt])
+}
+
+// 댓글 상태
+enum CommentStatus {
+  ACTIVE  // 활성
+  DELETED // 삭제됨
+  BLOCKED // 신고로 차단됨
+}
+
+// 댓글 좋아요
+model CommentLike {
+  id        String  @id @default(uuid())
+  commentId String
+  comment   Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([commentId, userId])
+  @@index([commentId])
+  @@index([userId])
+}
+
+// ============================================
+// 해시태그 관련 모델
+// ============================================
+
+// 해시태그
+model Hashtag {
+  id    String @id @default(uuid())
+  name  String @unique // 해시태그 이름 (# 제외)
+
+  // 사용 횟수 (인기 해시태그 조회용)
+  usageCount Int @default(0)
+
+  // 연결된 게시글
+  posts PostHashtag[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([name])
+  @@index([usageCount(sort: Desc)])
+}
+
+// 게시글-해시태그 연결 (다대다)
+model PostHashtag {
+  id        String  @id @default(uuid())
+  postId    String
+  post      Post    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  hashtagId String
+  hashtag   Hashtag @relation(fields: [hashtagId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([postId, hashtagId])
+  @@index([postId])
+  @@index([hashtagId])
+}
+
+// ============================================
+// 신고 관련 모델
+// ============================================
+
+// 신고
+model Report {
+  id         String     @id @default(uuid())
+  reporterId String
+  reporter   User       @relation("Reporter", fields: [reporterId], references: [id], onDelete: Cascade)
+
+  // 신고 대상 (다형성)
+  targetType ReportTargetType
+  postId     String?
+  post       Post?      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  commentId  String?
+  comment    Comment?   @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  targetUserId String?
+  targetUser   User?    @relation("ReportedUser", fields: [targetUserId], references: [id], onDelete: Cascade)
+
+  // 신고 내용
+  reason     ReportReason
+  detail     String?    // 추가 설명
+
+  // 처리 상태
+  status     ReportStatus @default(PENDING)
+  processedAt DateTime?
+  processedBy String?    // 처리한 관리자 ID
+  processNote String?    // 처리 메모
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([reporterId])
+  @@index([status])
+  @@index([targetType])
+  @@index([postId])
+  @@index([commentId])
+  @@index([createdAt(sort: Desc)])
+}
+
+// 신고 대상 유형
+enum ReportTargetType {
+  POST
+  COMMENT
+  USER
+}
+
+// 신고 사유
+enum ReportReason {
+  SPAM           // 스팸/광고
+  HARASSMENT     // 괴롭힘/혐오
+  INAPPROPRIATE  // 부적절한 콘텐츠
+  MISINFORMATION // 허위정보
+  COPYRIGHT      // 저작권 침해
+  OTHER          // 기타
+}
+
+// 신고 처리 상태
+enum ReportStatus {
+  PENDING   // 대기중
+  REVIEWING // 검토중
+  RESOLVED  // 처리완료
+  DISMISSED // 기각
+}
+
+// ============================================
+// 시스템 관련 모델
+// ============================================
+
+// 앱 버전 정보
+model AppVersion {
+  id          String   @id @default(uuid())
+  version     String   @unique // 예: "1.0.0"
+  description String?
+  isForced    Boolean  @default(false) // 강제 업데이트 여부
+  minVersion  String?  // 최소 지원 버전
+
+  createdAt DateTime @default(now())
+
+  @@index([version])
 }

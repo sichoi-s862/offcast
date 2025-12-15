@@ -5,6 +5,12 @@ import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
 import { UserModule } from './user/user.module';
 import { SocialModule } from './social/social.module';
+import { ChannelModule } from './channel/channel.module';
+import { PostModule } from './post/post.module';
+import { CommentModule } from './comment/comment.module';
+import { HashtagModule } from './hashtag/hashtag.module';
+import { UploadModule } from './upload/upload.module';
+import { HealthModule } from './health/health.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 
 @Module({
@@ -17,6 +23,12 @@ import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
     AuthModule,
     UserModule,
     SocialModule,
+    ChannelModule,
+    PostModule,
+    CommentModule,
+    HashtagModule,
+    UploadModule,
+    HealthModule,
   ],
   providers: [
     {

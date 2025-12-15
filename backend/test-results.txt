@@ -1,0 +1,17 @@
+
+> offcast@0.0.1 test
+> jest
+
+PASS src/auth/auth.service.spec.ts
+PASS src/comment/comment.service.spec.ts
+PASS src/post/post.service.spec.ts
+PASS src/hashtag/hashtag.service.spec.ts
+PASS src/channel/channel.service.spec.ts
+PASS src/health/health.service.spec.ts
+PASS src/upload/upload.service.spec.ts
+
+Test Suites: 7 passed, 7 total
+Tests:       96 passed, 96 total
+Snapshots:   0 total
+Time:        1.195 s
+Ran all test suites.
