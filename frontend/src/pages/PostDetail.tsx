@@ -9,12 +9,14 @@ import {
   MoreHorizontal,
   Camera,
   X,
-  Loader2
+  Loader2,
+  MessageSquare
 } from 'lucide-react';
 import { AuthorDisplay } from '../components/common/AuthorDisplay';
 import { DetailSkeleton } from '../components/common/Skeleton';
 import { MenuBottomSheet } from '../components/modals/MenuBottomSheet';
 import { ReportModal } from '../components/modals/ReportModal';
+import { ReplyPage } from './ReplyPage';
 import type { ApiPost, ApiComment, CurrentUser } from '../types';
 import { usePostStore, useCommentStore, useChannelStore, toast } from '../stores';
 import { formatRelativeTime, formatCount } from '../utils/format';
@@ -24,6 +26,7 @@ interface PostDetailProps {
   postId: string;
   currentUser: CurrentUser;
   onBack: () => void;
+  onAccessDenied?: () => void;
 }
 
 const fadeIn = keyframes`
@@ -138,9 +141,7 @@ const PostContent = styled.p`
 
 const PostImage = styled.div`
   margin-bottom: 32px;
-  border-radius: 8px;
   overflow: hidden;
-  border: 1px solid #1f2937;
 
   img {
     display: block;
@@ -302,31 +303,6 @@ const CommentInputWrapper = styled.div`
   gap: 8px;
 `;
 
-const ReplyIndicator = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background-color: #1f2937;
-  padding: 8px 12px;
-  border-radius: 4px;
-  font-size: 12px;
-  color: #d1d5db;
-`;
-
-const ReplyCloseButton = styled.button`
-  padding: 4px;
-
-  &:hover {
-    background-color: #374151;
-  }
-
-  svg {
-    width: 12px;
-    height: 12px;
-    color: #9ca3af;
-  }
-`;
-
 const ImagePreview = styled.div`
   position: relative;
   display: inline-block;
@@ -438,8 +414,77 @@ const HiddenInput = styled.input`
   display: none;
 `;
 
-const Spacer = styled.div`
-  height: 80px;
+const ModalOverlay = styled.div`
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+`;
+
+const ModalContent = styled.div`
+  background-color: #1f2937;
+  border-radius: 12px;
+  padding: 24px;
+  margin: 20px;
+  max-width: 320px;
+  width: 100%;
+  text-align: center;
+`;
+
+const ModalTitle = styled.h3`
+  font-size: 18px;
+  font-weight: 700;
+  color: white;
+  margin-bottom: 12px;
+`;
+
+const ModalMessage = styled.p`
+  font-size: 14px;
+  color: #9ca3af;
+  margin-bottom: 24px;
+  line-height: 1.5;
+`;
+
+const ModalButton = styled.button`
+  width: 100%;
+  padding: 12px;
+  background-color: #7c3aed;
+  border-radius: 8px;
+  color: white;
+  font-weight: 700;
+  font-size: 14px;
+
+  &:hover {
+    background-color: #6d28d9;
+  }
+`;
+
+const RepliesContainer = styled.div`
+  cursor: pointer;
+`;
+
+const MoreRepliesButton = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 16px 12px 52px;
+  color: #7c3aed;
+  font-size: 13px;
+  font-weight: 500;
+  width: 100%;
+  text-align: left;
+
+  svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  &:hover {
+    background-color: rgba(124, 58, 237, 0.1);
+  }
 `;
 
 // 작성자 정보 문자열 생성
@@ -465,30 +510,31 @@ const buildPostAuthorInfo = (post: ApiPost): string => {
   return 'YOUTUBE|익명|0';
 };
 
-export const PostDetail: React.FC<PostDetailProps> = ({ postId, onBack }) => {
+export const PostDetail: React.FC<PostDetailProps> = ({ postId, onBack, onAccessDenied }) => {
   const [commentText, setCommentText] = useState('');
   const [commentImagePreview, setCommentImagePreview] = useState<string | null>(null);
   const [uploadedCommentImage, setUploadedCommentImage] = useState<{ url: string; key: string } | null>(null);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [menuTarget, setMenuTarget] = useState<{ type: 'post' | 'comment'; id: string; authorId?: string } | null>(null);
+  const [menuTarget, setMenuTarget] = useState<{ type: 'post' | 'comment'; id: string; authorId?: string; isReply?: boolean } | null>(null);
   const [reportOpen, setReportOpen] = useState(false);
+  const [accessDeniedOpen, setAccessDeniedOpen] = useState(false);
+  const [replyingToComment, setReplyingToComment] = useState<ApiComment | null>(null);
 
   const commentFileRef = useRef<HTMLInputElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   // Zustand 스토어
-  const { currentPost, isLoading: postLoading, fetchPostById, toggleLike } = usePostStore();
+  const { currentPost, isLoading: postLoading, errorCode, fetchPostById, toggleLike, clearError } = usePostStore();
   const {
     comments,
     total: totalComments,
     isLoading: commentsLoading,
     isSubmitting,
-    replyingToId,
     fetchComments,
     addComment,
     toggleLike: toggleCommentLike,
-    setReplyingTo,
     clearComments,
   } = useCommentStore();
   const { getChannelById } = useChannelStore();
@@ -509,6 +555,26 @@ export const PostDetail: React.FC<PostDetailProps> = ({ postId, onBack }) => {
       clearComments();
     };
   }, [postId, fetchPostById, fetchComments, clearComments]);
+
+  // 403 에러 감지 시 처리
+  useEffect(() => {
+    if (errorCode === 403) {
+      if (onAccessDenied) {
+        // URL로 직접 접근한 경우 외부에서 처리
+        onAccessDenied();
+      } else {
+        // 앱 내부 네비게이션인 경우 모달 표시
+        setAccessDeniedOpen(true);
+      }
+    }
+  }, [errorCode, onAccessDenied]);
+
+  // 접근 불가 모달 닫기 및 뒤로가기
+  const handleAccessDeniedClose = useCallback(() => {
+    setAccessDeniedOpen(false);
+    clearError();
+    onBack();
+  }, [clearError, onBack]);
 
   const channel = currentPost ? getChannelById(currentPost.channelId) : null;
 
@@ -532,10 +598,9 @@ export const PostDetail: React.FC<PostDetailProps> = ({ postId, onBack }) => {
     }
   }, []);
 
-  const handleReplyClick = useCallback((commentId: string) => {
-    setReplyingTo(commentId);
-    inputRef.current?.focus();
-  }, [setReplyingTo]);
+  const handleReplyClick = useCallback((comment: ApiComment) => {
+    setReplyingToComment(comment);
+  }, []);
 
   const handleCommentSubmit = useCallback(async () => {
     if (!commentText.trim() && !uploadedCommentImage) return;
@@ -547,19 +612,27 @@ export const PostDetail: React.FC<PostDetailProps> = ({ postId, onBack }) => {
         content: commentText,
         imageUrl: uploadedCommentImage?.url || undefined,
         imageKey: uploadedCommentImage?.key || undefined,
-        parentId: replyingToId || undefined,
+        parentId: undefined,
       });
       setCommentText('');
       setCommentImagePreview(null);
       setUploadedCommentImage(null);
+
+      // 댓글 작성 후 맨 아래로 스크롤 (API 완료 후 다음 렌더링)
+      requestAnimationFrame(() => {
+        scrollRef.current?.scrollTo({
+          top: scrollRef.current.scrollHeight,
+          behavior: 'smooth',
+        });
+      });
     } catch (error) {
       console.error('Failed to add comment:', error);
       // 전역 인터셉터에서 토스트 처리
     }
-  }, [commentText, uploadedCommentImage, isUploadingImage, postId, replyingToId, addComment]);
+  }, [commentText, uploadedCommentImage, isUploadingImage, postId, addComment]);
 
-  const openMenu = (type: 'post' | 'comment', id: string, authorId?: string) => {
-    setMenuTarget({ type, id, authorId });
+  const openMenu = (type: 'post' | 'comment', id: string, authorId?: string, isReply?: boolean) => {
+    setMenuTarget({ type, id, authorId, isReply });
     setMenuOpen(true);
   };
 
@@ -662,7 +735,7 @@ export const PostDetail: React.FC<PostDetailProps> = ({ postId, onBack }) => {
         </MenuButton>
       </Header>
 
-      <ScrollContent className="no-scrollbar">
+      <ScrollContent ref={scrollRef} className="no-scrollbar">
         <PostSection>
           <AuthorRow>
             <AuthorDisplay
@@ -733,45 +806,46 @@ export const PostDetail: React.FC<PostDetailProps> = ({ postId, onBack }) => {
                       <ThumbsUp fill={comment.isLiked ? "currentColor" : "none"} />
                       {comment.likeCount}
                     </CommentAction>
-                    <ReplyButton onClick={() => handleReplyClick(comment.id)}>
+                    <ReplyButton onClick={() => handleReplyClick(comment)}>
                       답글 쓰기
                     </ReplyButton>
                   </CommentMeta>
                 </CommentItem>
-                {comment.replies?.map((reply) => (
-                  <CommentItem key={reply.id} $isReply>
-                    <CommentHeader>
-                      <AuthorDisplay infoString={buildAuthorInfo(reply)} iconSize={32} adjustIconMargin />
-                      <CommentMenuButton onClick={() => openMenu('comment', reply.id, reply.authorId)}>
-                        <MoreHorizontal />
-                      </CommentMenuButton>
-                    </CommentHeader>
-                    <CommentContent>{reply.content}</CommentContent>
-                    <CommentMeta>
-                      <span>{formatRelativeTime(reply.createdAt)}</span>
-                      <CommentAction onClick={() => handleCommentLike(reply.id)}>
-                        <ThumbsUp fill={reply.isLiked ? "currentColor" : "none"} />
-                        {reply.likeCount}
-                      </CommentAction>
-                    </CommentMeta>
-                  </CommentItem>
-                ))}
+                {comment.replies && comment.replies.length > 0 && (
+                  <RepliesContainer>
+                    {comment.replies.slice(0, 3).map((reply) => (
+                      <CommentItem key={reply.id} $isReply onClick={() => handleReplyClick(comment)}>
+                        <CommentHeader>
+                          <AuthorDisplay infoString={buildAuthorInfo(reply)} iconSize={32} adjustIconMargin />
+                          <CommentMenuButton onClick={(e) => { e.stopPropagation(); openMenu('comment', reply.id, reply.authorId, true); }}>
+                            <MoreHorizontal />
+                          </CommentMenuButton>
+                        </CommentHeader>
+                        <CommentContent>{reply.content}</CommentContent>
+                        <CommentMeta>
+                          <span>{formatRelativeTime(reply.createdAt)}</span>
+                          <CommentAction onClick={(e) => { e.stopPropagation(); handleCommentLike(reply.id); }}>
+                            <ThumbsUp fill={reply.isLiked ? "currentColor" : "none"} />
+                            {reply.likeCount}
+                          </CommentAction>
+                        </CommentMeta>
+                      </CommentItem>
+                    ))}
+                    {comment.replies.length > 3 && (
+                      <MoreRepliesButton onClick={() => handleReplyClick(comment)}>
+                        <MessageSquare />
+                        답글 {comment.replies.length - 3}개 더보기
+                      </MoreRepliesButton>
+                    )}
+                  </RepliesContainer>
+                )}
               </React.Fragment>
             ))
           )}
-          <Spacer />
         </CommentsSection>
       </ScrollContent>
 
       <CommentInputWrapper>
-        {replyingToId && (
-          <ReplyIndicator>
-            <span>답글 작성 중...</span>
-            <ReplyCloseButton onClick={() => setReplyingTo(null)}>
-              <X />
-            </ReplyCloseButton>
-          </ReplyIndicator>
-        )}
         {commentImagePreview && (
           <ImagePreview>
             <img src={commentImagePreview} alt="Preview" />
@@ -803,7 +877,7 @@ export const PostDetail: React.FC<PostDetailProps> = ({ postId, onBack }) => {
             <CommentInput
               ref={inputRef}
               type="text"
-              placeholder={replyingToId ? "답글을 입력하세요." : "댓글을 남겨주세요."}
+              placeholder="댓글을 남겨주세요."
               value={commentText}
               onChange={(e) => setCommentText(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && !isSubmitting && handleCommentSubmit()}
@@ -824,7 +898,10 @@ export const PostDetail: React.FC<PostDetailProps> = ({ postId, onBack }) => {
         isOpen={menuOpen}
         isComment={menuTarget?.type === 'comment'}
         onClose={() => setMenuOpen(false)}
-        onReply={menuTarget?.type === 'comment' ? () => handleReplyClick(menuTarget.id) : undefined}
+        onReply={menuTarget?.type === 'comment' && !menuTarget?.isReply ? () => {
+          const targetComment = comments.find(c => c.id === menuTarget.id);
+          if (targetComment) handleReplyClick(targetComment);
+        } : undefined}
         onReport={() => setReportOpen(true)}
         onBlock={handleBlock}
       />
@@ -838,6 +915,32 @@ export const PostDetail: React.FC<PostDetailProps> = ({ postId, onBack }) => {
         commentId={menuTarget?.type === 'comment' ? menuTarget.id : undefined}
         targetUserId={menuTarget?.authorId}
       />
+
+      {accessDeniedOpen && (
+        <ModalOverlay onClick={handleAccessDeniedClose}>
+          <ModalContent onClick={(e) => e.stopPropagation()}>
+            <ModalTitle>접근 권한 없음</ModalTitle>
+            <ModalMessage>
+              해당 채널에 접근 권한이 없습니다.<br />
+              구독자 수에 따라 접근 가능한 채널이 다릅니다.
+            </ModalMessage>
+            <ModalButton onClick={handleAccessDeniedClose}>
+              확인
+            </ModalButton>
+          </ModalContent>
+        </ModalOverlay>
+      )}
+
+      {replyingToComment && currentPost && (
+        <ReplyPage
+          postId={postId}
+          parentComment={replyingToComment}
+          onBack={() => {
+            setReplyingToComment(null);
+            fetchComments(postId); // 답글 페이지에서 돌아올 때 댓글 새로고침
+          }}
+        />
+      )}
     </Container>
   );
 };

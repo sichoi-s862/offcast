@@ -71,7 +71,7 @@ export class UserService {
     );
 
     if (existingUser) {
-      // 기존 사용자: 토큰 및 프로필 정보 갱신
+      // 기존 사용자: 토큰 및 프로필 정보 갱신 (Account만 업데이트, User.nickname은 건드리지 않음)
       await this.prisma.account.update({
         where: {
           provider_providerAccountId: {
@@ -88,10 +88,11 @@ export class UserService {
           subscriberCount: profile.subscriberCount,
         },
       });
+
       return existingUser;
     }
 
-    // 신규 사용자 생성
+    // 신규 사용자 생성 (nickname은 나중에 별도 설정)
     return this.prisma.user.create({
       data: {
         accounts: {

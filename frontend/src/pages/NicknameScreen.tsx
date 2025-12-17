@@ -169,10 +169,18 @@ export const NicknameScreen: React.FC<NicknameScreenProps> = ({ onComplete, onBa
   const [status, setStatus] = useState<Status>('idle');
   const [errorMessage, setErrorMessage] = useState('');
 
+  // 닉네임 유효성 검사 (2-10자)
+  const isValidNickname = nickname.length >= 2 && nickname.length <= 10;
+
   const handleCheck = () => {
     if (nickname.length < 2) {
       setStatus('error');
       setErrorMessage('2글자 이상 입력해주세요.');
+      return;
+    }
+    if (nickname.length > 10) {
+      setStatus('error');
+      setErrorMessage('10글자 이하로 입력해주세요.');
       return;
     }
     setStatus('checking');
@@ -183,12 +191,32 @@ export const NicknameScreen: React.FC<NicknameScreenProps> = ({ onComplete, onBa
       } else {
         setStatus('success');
       }
-    }, 1000);
+    }, 500);
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setNickname(e.target.value);
     setStatus('idle');
+  };
+
+  const handleSubmit = () => {
+    if (!isValidNickname) return;
+
+    // 중복 확인을 했으면 바로 진행, 안했으면 확인 후 진행
+    if (status === 'success') {
+      onComplete(nickname);
+    } else {
+      // 중복 확인 후 자동 진행
+      setStatus('checking');
+      setTimeout(() => {
+        if (nickname === 'admin' || nickname === 'blind') {
+          setStatus('error');
+          setErrorMessage('이미 사용 중인 닉네임입니다.');
+        } else {
+          onComplete(nickname);
+        }
+      }, 500);
+    }
   };
 
   return (
@@ -228,11 +256,11 @@ export const NicknameScreen: React.FC<NicknameScreenProps> = ({ onComplete, onBa
       </MessageRow>
 
       <SubmitButton
-        $active={status === 'success'}
-        disabled={status !== 'success'}
-        onClick={() => onComplete(nickname)}
+        $active={isValidNickname && status !== 'checking'}
+        disabled={!isValidNickname || status === 'checking'}
+        onClick={handleSubmit}
       >
-        시작하기 <ArrowRight />
+        {status === 'checking' ? <SpinnerIcon /> : <>시작하기 <ArrowRight /></>}
       </SubmitButton>
     </Container>
   );

@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import axios from 'axios';
 import {
   getPosts,
   getPostById,
@@ -23,6 +24,7 @@ interface PostState {
   isLoadingMore: boolean;
   isCreating: boolean;
   error: string | null;
+  errorCode: number | null; // HTTP 에러 코드
 
   // 필터 상태
   filters: PostQueryParams;
@@ -60,6 +62,7 @@ export const usePostStore = create<PostState>((set, get) => ({
   isLoadingMore: false,
   isCreating: false,
   error: null,
+  errorCode: null,
   filters: {},
 
   // 게시글 목록 조회
@@ -91,14 +94,15 @@ export const usePostStore = create<PostState>((set, get) => ({
 
   // 게시글 상세 조회
   fetchPostById: async (id: string) => {
-    set({ isLoading: true, error: null });
+    set({ isLoading: true, error: null, errorCode: null });
     try {
       const post = await getPostById(id);
       set({ currentPost: post, isLoading: false });
       return post;
     } catch (error: unknown) {
       const errorMessage = getErrorMessage(error, '게시글을 불러오는데 실패했습니다.');
-      set({ error: errorMessage, isLoading: false });
+      const errorCode = axios.isAxiosError(error) ? error.response?.status || null : null;
+      set({ error: errorMessage, errorCode, isLoading: false });
       return null;
     }
   },
@@ -234,7 +238,7 @@ export const usePostStore = create<PostState>((set, get) => ({
 
   // 에러 클리어
   clearError: () => {
-    set({ error: null });
+    set({ error: null, errorCode: null });
   },
 
   // 게시글 새로고침

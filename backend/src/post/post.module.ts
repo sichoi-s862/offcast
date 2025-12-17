@@ -3,13 +3,14 @@ import { PostController } from './post.controller';
 import { PostService } from './post.service';
 import { PrismaModule } from '../prisma/prisma.module';
 import { ChannelModule } from '../channel/channel.module';
+import { UserModule } from '../user/user.module';
 
 /**
  * 게시글 모듈
  * - 게시글 CRUD, 좋아요, 해시태그 관리
  */
 @Module({
-  imports: [PrismaModule, ChannelModule],
+  imports: [PrismaModule, ChannelModule, UserModule],
   controllers: [PostController],
   providers: [PostService],
   exports: [PostService],

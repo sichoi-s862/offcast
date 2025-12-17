@@ -1,15 +1,20 @@
 import React, { useEffect, useCallback, useRef, useState } from 'react';
 import styled, { keyframes } from 'styled-components';
-import { Lock, Loader2, RefreshCw } from 'lucide-react';
+import { Loader2, RefreshCw, X } from 'lucide-react';
+import { useChannelStore } from '../../stores';
 import { PostCard } from '../../components/post/PostCard';
 import { PostSkeleton } from '../../components/common/Skeleton';
 import type { CurrentUser, ApiPost } from '../../types';
-import { usePostStore, useChannelStore } from '../../stores';
+import { usePostStore } from '../../stores';
+
+type SortType = 'latest' | 'popular';
 
 interface FeedViewProps {
   currentUser: CurrentUser;
   searchQuery?: string;
+  selectedChannelId?: string | null;
   onPostClick: (post: ApiPost) => void;
+  onClearChannel?: () => void;
 }
 
 const fadeIn = keyframes`
@@ -37,46 +42,85 @@ const Container = styled.div`
   animation: ${fadeIn} 0.5s ease-out;
 `;
 
-const ChannelTabs = styled.div`
+const FilterTabs = styled.div`
   display: flex;
-  overflow-x: auto;
   padding: 12px 16px;
   gap: 8px;
   border-bottom: 1px solid #1f2937;
-
-  &::-webkit-scrollbar {
-    display: none;
-  }
 `;
 
-const ChannelTab = styled.button<{ $locked: boolean; $active: boolean }>`
-  white-space: nowrap;
-  padding: 6px 12px;
+const FilterTab = styled.button<{ $active: boolean }>`
+  padding: 6px 16px;
   border-radius: 9999px;
-  font-size: 12px;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  border: 1px solid ${props => props.$active ? '#6366f1' : props.$locked ? '#1f2937' : '#374151'};
-  background-color: ${props => props.$active ? '#4f46e5' : props.$locked ? '#111827' : '#1f2937'};
-  color: ${props => props.$active ? '#fff' : props.$locked ? '#6b7280' : '#d1d5db'};
-  cursor: ${props => props.$locked ? 'not-allowed' : 'pointer'};
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid ${props => props.$active ? '#6366f1' : '#374151'};
+  background-color: ${props => props.$active ? '#4f46e5' : 'transparent'};
+  color: ${props => props.$active ? '#fff' : '#9ca3af'};
+  cursor: pointer;
   transition: all 0.2s;
 
   &:hover {
-    background-color: ${props => props.$active ? '#4338ca' : props.$locked ? '#111827' : '#374151'};
-  }
-
-  svg {
-    width: 12px;
-    height: 12px;
+    background-color: ${props => props.$active ? '#4338ca' : '#1f2937'};
   }
 `;
 
 const PostList = styled.div`
   display: flex;
   flex-direction: column;
+`;
+
+const ChannelHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background-color: #1f2937;
+  border-bottom: 1px solid #374151;
+`;
+
+const ChannelInfo = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+`;
+
+const ChannelName = styled.span`
+  font-size: 14px;
+  font-weight: 600;
+  color: #e5e7eb;
+`;
+
+const ChannelBadge = styled.span`
+  font-size: 11px;
+  color: #9ca3af;
+  background-color: #374151;
+  padding: 2px 8px;
+  border-radius: 4px;
+`;
+
+const ClearButton = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  background-color: transparent;
+  border: 1px solid #374151;
+  border-radius: 6px;
+  color: #9ca3af;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    background-color: #374151;
+    color: #e5e7eb;
+  }
+
+  svg {
+    width: 14px;
+    height: 14px;
+  }
 `;
 
 const SkeletonWrapper = styled.div<{ $fading: boolean }>`
@@ -165,7 +209,9 @@ const REFRESH_INTERVAL = 30 * 1000;
 export const FeedView: React.FC<FeedViewProps> = ({
   currentUser,
   searchQuery,
+  selectedChannelId,
   onPostClick,
+  onClearChannel,
 }) => {
   const {
     posts,
@@ -180,8 +226,11 @@ export const FeedView: React.FC<FeedViewProps> = ({
   } = usePostStore();
 
   const { channels } = useChannelStore();
+  const selectedChannel = selectedChannelId
+    ? channels.find(c => c.id === selectedChannelId)
+    : null;
 
-  const [selectedChannelId, setSelectedChannelId] = useState<string | null>(null);
+  const [sortType, setSortType] = useState<SortType>('latest');
   const [isPullRefreshing, setIsPullRefreshing] = useState(false);
   const [showSkeleton, setShowSkeleton] = useState(true);
   const [isFadingOut, setIsFadingOut] = useState(false);
@@ -191,11 +240,19 @@ export const FeedView: React.FC<FeedViewProps> = ({
   const skeletonTimerRef = useRef<NodeJS.Timeout | null>(null);
   const loadStartTimeRef = useRef<number>(Date.now());
 
-  // 초기 로드 및 채널 변경 시 게시글 로드
+  // 채널 선택 시 최신순으로 리셋
+  useEffect(() => {
+    if (selectedChannelId) {
+      setSortType('latest');
+    }
+  }, [selectedChannelId]);
+
+  // 초기 로드 및 정렬/채널 변경 시 게시글 로드
   useEffect(() => {
     const params = {
-      channelId: selectedChannelId || undefined,
+      sort: selectedChannelId ? 'latest' as const : sortType,
       keyword: searchQuery || undefined,
+      channelId: selectedChannelId || undefined,
       page: 1,
     };
     setFilters(params);
@@ -233,7 +290,7 @@ export const FeedView: React.FC<FeedViewProps> = ({
         clearTimeout(skeletonTimerRef.current);
       }
     };
-  }, [selectedChannelId, searchQuery, fetchPosts, setFilters]);
+  }, [sortType, searchQuery, selectedChannelId, fetchPosts, setFilters]);
 
   // 주기적 새로고침 (30초마다)
   useEffect(() => {
@@ -271,11 +328,10 @@ export const FeedView: React.FC<FeedViewProps> = ({
     return () => window.removeEventListener('scroll', handleScroll);
   }, [posts.length, total, page, isLoading, isLoadingMore, fetchPosts]);
 
-  // 채널 탭 클릭
-  const handleChannelClick = useCallback((channelId: string | null, isLocked: boolean) => {
-    if (isLocked) return;
-    setSelectedChannelId(channelId === selectedChannelId ? null : channelId);
-  }, [selectedChannelId]);
+  // 정렬 탭 클릭
+  const handleSortChange = useCallback((sort: SortType) => {
+    setSortType(sort);
+  }, []);
 
   // 좋아요 토글
   const handleLike = useCallback((postId: string) => {
@@ -306,29 +362,33 @@ export const FeedView: React.FC<FeedViewProps> = ({
         새로고침 중...
       </PullToRefresh>
 
-      <ChannelTabs className="no-scrollbar">
-        <ChannelTab
-          $locked={false}
-          $active={selectedChannelId === null}
-          onClick={() => handleChannelClick(null, false)}
-        >
-          전체
-        </ChannelTab>
-        {channels.map((channel) => {
-          const isLocked = currentUser.rawSubCount < channel.minSubscribers;
-          return (
-            <ChannelTab
-              key={channel.id}
-              $locked={isLocked}
-              $active={selectedChannelId === channel.id}
-              onClick={() => handleChannelClick(channel.id, isLocked)}
-            >
-              {isLocked && <Lock />}
-              {channel.name}
-            </ChannelTab>
-          );
-        })}
-      </ChannelTabs>
+      {selectedChannel ? (
+        <ChannelHeader>
+          <ChannelInfo>
+            <ChannelName>{selectedChannel.name}</ChannelName>
+            <ChannelBadge>최신순</ChannelBadge>
+          </ChannelInfo>
+          <ClearButton onClick={onClearChannel}>
+            <X />
+            전체보기
+          </ClearButton>
+        </ChannelHeader>
+      ) : (
+        <FilterTabs>
+          <FilterTab
+            $active={sortType === 'latest'}
+            onClick={() => handleSortChange('latest')}
+          >
+            최신순
+          </FilterTab>
+          <FilterTab
+            $active={sortType === 'popular'}
+            onClick={() => handleSortChange('popular')}
+          >
+            인기순
+          </FilterTab>
+        </FilterTabs>
+      )}
 
       {shouldShowSkeleton ? (
         <SkeletonWrapper $fading={isFadingOut}>

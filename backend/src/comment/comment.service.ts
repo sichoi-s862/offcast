@@ -176,6 +176,14 @@ export class CommentService {
           imageUrl: dto.imageUrl,
           imageKey: dto.imageKey,
         },
+        include: {
+          author: {
+            select: { id: true, nickname: true },
+          },
+          _count: {
+            select: { likes: true },
+          },
+        },
       });
 
       // 게시글의 댓글 수 증가

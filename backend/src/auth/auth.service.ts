@@ -95,6 +95,7 @@ export class AuthService {
    * 개발용 테스트 로그인
    * - 실제 OAuth 없이 테스트용 JWT 발급
    * - 프로덕션 환경에서는 사용 불가
+   * - 닉네임 기반으로 동일 계정 식별 (구독자 수 변경 가능)
    */
   async devLogin(request: DevLoginRequest): Promise<AuthResult> {
     // 프로덕션 환경 체크
@@ -103,18 +104,27 @@ export class AuthService {
       throw new ForbiddenException('개발용 로그인은 프로덕션 환경에서 사용할 수 없습니다');
     }
 
-    // 테스트용 프로필 생성
+    const nickname = request.nickname || `테스트_${request.provider}`;
+
+    // 개발용 고정 providerAccountId (플랫폼별 하나의 테스트 계정)
     const testProfile: OAuthProfile = {
       provider: request.provider,
-      providerAccountId: `dev_${request.provider}_${Date.now()}`,
+      providerAccountId: `dev_${request.provider}_test`,
       accessToken: 'dev_access_token',
       refreshToken: 'dev_refresh_token',
-      profileName: request.nickname || `테스트_${request.provider}`,
+      profileName: `${request.provider} 테스트계정`, // OAuth 프로필명 (플랫폼에서 오는 값)
       profileImage: '',
-      subscriberCount: request.subscriberCount || 150000, // 기본값: 15만 구독자
+      subscriberCount: request.subscriberCount || 150000,
     };
 
     const user = await this.userService.findOrCreateByOAuth(testProfile);
+
+    // User.nickname 별도 설정 (사용자가 입력한 커뮤니티 닉네임)
+    if (nickname) {
+      await this.userService.updateNickname(user.id, nickname);
+      user.nickname = nickname;
+    }
+
     const token = this.generateToken(user);
 
     return { user, token };

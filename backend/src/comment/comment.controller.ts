@@ -19,6 +19,8 @@ import {
   ApiQuery,
 } from '@nestjs/swagger';
 import { CommentService } from './comment.service';
+import { PostService } from '../post/post.service';
+import { UserService } from '../user/user.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { Public } from '../common/decorators/public.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
@@ -32,7 +34,11 @@ import type { User } from '@prisma/client';
 @ApiTags('Comment')
 @Controller('comments')
 export class CommentController {
-  constructor(private commentService: CommentService) {}
+  constructor(
+    private commentService: CommentService,
+    private postService: PostService,
+    private userService: UserService,
+  ) {}
 
   /**
    * 게시글의 댓글 목록 조회
@@ -77,10 +83,38 @@ export class CommentController {
     status: HttpStatus.CREATED,
     description: '댓글 생성 완료',
   })
+  @ApiResponse({
+    status: HttpStatus.FORBIDDEN,
+    description: '채널 접근 권한 없음',
+  })
   async create(
     @CurrentUser() user: User,
     @Body() dto: CreateCommentDto,
   ) {
+    // 게시글 조회하여 채널 접근 권한 확인
+    const post = await this.postService.findById(dto.postId);
+    if (!post) {
+      return {
+        statusCode: HttpStatus.NOT_FOUND,
+        message: '게시글을 찾을 수 없습니다',
+      };
+    }
+
+    // 채널 접근 권한 확인
+    const channel = post.channel;
+    if (channel) {
+      const subscriberCount = await this.userService.getMaxSubscriberCount(user.id);
+      const aboveMin = subscriberCount >= channel.minSubscribers;
+      const belowMax = channel.maxSubscribers === null || subscriberCount <= channel.maxSubscribers;
+
+      if (!aboveMin || !belowMax) {
+        return {
+          statusCode: HttpStatus.FORBIDDEN,
+          message: '해당 채널에 접근 권한이 없습니다',
+        };
+      }
+    }
+
     return this.commentService.create(user.id, dto);
   }
 

@@ -48,7 +48,7 @@ export class PostService {
   /**
    * 게시글 목록 조회
    */
-  async findAll(query: GetPostsQueryDto): Promise<PostListResponse> {
+  async findAll(query: GetPostsQueryDto, accessibleChannelIds?: string[]): Promise<PostListResponse> {
     const page = Math.max(1, query.page || 1);
     const limit = Math.min(50, Math.max(1, query.limit || 20));
     const skip = (page - 1) * limit;
@@ -62,6 +62,9 @@ export class PostService {
     // 채널 필터
     if (query.channelId) {
       where.channelId = query.channelId;
+    } else if (accessibleChannelIds && accessibleChannelIds.length > 0) {
+      // 접근 가능한 채널만 필터링
+      where.channelId = { in: accessibleChannelIds };
     }
 
     // 키워드 검색 (제목, 내용)
@@ -83,12 +86,14 @@ export class PostService {
       };
     }
 
+    // 인기순: 시간 감쇠 적용 (별도 처리)
+    if (query.sort === 'popular') {
+      return this.findAllPopular(where, page, limit, skip);
+    }
+
     // 정렬 조건
     let orderBy: Prisma.PostOrderByWithRelationInput;
     switch (query.sort) {
-      case 'popular':
-        orderBy = { likeCount: 'desc' };
-        break;
       case 'views':
         orderBy = { viewCount: 'desc' };
         break;
@@ -131,6 +136,93 @@ export class PostService {
       limit,
       totalPages: Math.ceil(total / limit),
     };
+  }
+
+  // 인기순 캐시 (5분)
+  private popularCache: {
+    data: PostListResponse | null;
+    timestamp: number;
+  } = { data: null, timestamp: 0 };
+  private readonly POPULAR_CACHE_TTL = 5 * 60 * 1000; // 5분
+
+  /**
+   * 인기순 조회 (시간 감쇠 적용, 5분 캐싱)
+   * 점수 = 좋아요 / (경과시간(시간) + 2)^1.5
+   */
+  private async findAllPopular(
+    where: Prisma.PostWhereInput,
+    page: number,
+    limit: number,
+    skip: number,
+  ): Promise<PostListResponse> {
+    const now = Date.now();
+
+    // 캐시 확인 (첫 페이지만 캐싱)
+    if (
+      page === 1 &&
+      this.popularCache.data &&
+      now - this.popularCache.timestamp < this.POPULAR_CACHE_TTL
+    ) {
+      return this.popularCache.data;
+    }
+
+    // 전체 데이터 조회 (점수 계산을 위해)
+    const [allPosts, total] = await Promise.all([
+      this.prisma.post.findMany({
+        where,
+        include: {
+          author: {
+            select: { id: true, nickname: true },
+          },
+          channel: true,
+          images: {
+            orderBy: { order: 'asc' },
+            take: 1,
+          },
+          hashtags: {
+            include: { hashtag: true },
+          },
+          _count: {
+            select: { comments: true, likes: true },
+          },
+        },
+      }),
+      this.prisma.post.count({ where }),
+    ]);
+
+    // 시간 감쇠 점수 계산 및 정렬
+    const postsWithScore = allPosts.map((post) => {
+      const hoursAgo = (now - new Date(post.createdAt).getTime()) / (1000 * 60 * 60);
+      // 점수 = 좋아요 / (경과시간 + 2)^1.2
+      // +2는 최신 글이 0으로 나눠지는 것 방지 및 초기 부스트
+      // ^1.2는 완만한 감쇠 (초기 커뮤니티에 적합)
+      const score = post.likeCount / Math.pow(hoursAgo + 2, 1.2);
+      return { ...post, _popularityScore: score };
+    });
+
+    // 점수순 정렬
+    postsWithScore.sort((a, b) => b._popularityScore - a._popularityScore);
+
+    // 페이지네이션 적용
+    const paginatedPosts = postsWithScore.slice(skip, skip + limit);
+
+    // _popularityScore 필드 제거
+    const posts = paginatedPosts.map(({ _popularityScore, ...post }) => post);
+
+    const result = {
+      posts,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
+
+    // 첫 페이지는 캐싱
+    if (page === 1) {
+      this.popularCache = { data: result, timestamp: now };
+    }
+
+    return result;
   }
 
   /**

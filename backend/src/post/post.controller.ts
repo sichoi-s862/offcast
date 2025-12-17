@@ -20,6 +20,7 @@ import {
 } from '@nestjs/swagger';
 import { PostService } from './post.service';
 import { ChannelService } from '../channel/channel.service';
+import { UserService } from '../user/user.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { Public } from '../common/decorators/public.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
@@ -36,13 +37,15 @@ export class PostController {
   constructor(
     private postService: PostService,
     private channelService: ChannelService,
+    private userService: UserService,
   ) {}
 
   /**
    * 게시글 목록 조회
    */
-  @Public()
   @Get()
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: '게시글 목록 조회' })
   @ApiQuery({ name: 'channelId', required: false, description: '채널 ID' })
   @ApiQuery({ name: 'page', required: false, description: '페이지 번호' })
@@ -54,8 +57,37 @@ export class PostController {
     status: HttpStatus.OK,
     description: '게시글 목록 반환',
   })
-  async findAll(@Query() query: GetPostsQueryDto) {
-    return this.postService.findAll(query);
+  @ApiResponse({
+    status: HttpStatus.FORBIDDEN,
+    description: '채널 접근 권한 없음',
+  })
+  async findAll(
+    @CurrentUser() user: User,
+    @Query() query: GetPostsQueryDto,
+  ) {
+    // 특정 채널 필터링 시 접근 권한 확인
+    if (query.channelId) {
+      const channel = await this.channelService.findById(query.channelId);
+      if (channel) {
+        const subscriberCount = await this.userService.getMaxSubscriberCount(user.id);
+        const aboveMin = subscriberCount >= channel.minSubscribers;
+        const belowMax = channel.maxSubscribers === null || subscriberCount <= channel.maxSubscribers;
+
+        if (!aboveMin || !belowMax) {
+          return {
+            statusCode: HttpStatus.FORBIDDEN,
+            message: '해당 채널에 접근 권한이 없습니다',
+          };
+        }
+      }
+    }
+
+    // 사용자가 접근 가능한 채널 ID 목록 조회
+    const subscriberCount = await this.userService.getMaxSubscriberCount(user.id);
+    const accessibleChannels = await this.channelService.getAccessibleChannels(subscriberCount);
+    const accessibleChannelIds = accessibleChannels.map(ch => ch.id);
+
+    return this.postService.findAll(query, accessibleChannelIds);
   }
 
   /**
@@ -85,18 +117,50 @@ export class PostController {
   /**
    * 게시글 상세 조회
    */
-  @Public()
   @Get(':id')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: '게시글 상세 조회' })
   @ApiParam({ name: 'id', description: '게시글 ID' })
   @ApiResponse({
     status: HttpStatus.OK,
     description: '게시글 상세 정보 반환',
   })
-  async findById(@Param('id') id: string) {
+  @ApiResponse({
+    status: HttpStatus.FORBIDDEN,
+    description: '채널 접근 권한 없음',
+  })
+  async findById(
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+  ) {
+    // 게시글 조회
+    const post = await this.postService.findById(id);
+    if (!post) {
+      return {
+        statusCode: HttpStatus.NOT_FOUND,
+        message: '게시글을 찾을 수 없습니다',
+      };
+    }
+
+    // 채널 접근 권한 확인
+    const channel = post.channel;
+    if (channel) {
+      const subscriberCount = await this.userService.getMaxSubscriberCount(user.id);
+      const aboveMin = subscriberCount >= channel.minSubscribers;
+      const belowMax = channel.maxSubscribers === null || subscriberCount <= channel.maxSubscribers;
+
+      if (!aboveMin || !belowMax) {
+        return {
+          statusCode: HttpStatus.FORBIDDEN,
+          message: '해당 채널에 접근 권한이 없습니다',
+        };
+      }
+    }
+
     // 조회수 증가
     await this.postService.incrementViewCount(id);
-    return this.postService.findById(id);
+    return post;
   }
 
   /**
@@ -118,17 +182,25 @@ export class PostController {
     @CurrentUser() user: User,
     @Body() dto: CreatePostDto,
   ) {
-    // 채널 접근 권한 확인
-    const hasAccess = await this.channelService.checkAccess(user.id, dto.channelId);
-    if (!hasAccess) {
-      // 자유 게시판(minSubscribers: 0)인지 확인
-      const channel = await this.channelService.findById(dto.channelId);
-      if (!channel || channel.minSubscribers > 0) {
-        return {
-          statusCode: HttpStatus.FORBIDDEN,
-          message: '해당 채널에 접근 권한이 없습니다',
-        };
-      }
+    // 채널 조회
+    const channel = await this.channelService.findById(dto.channelId);
+    if (!channel) {
+      return {
+        statusCode: HttpStatus.FORBIDDEN,
+        message: '존재하지 않는 채널입니다',
+      };
+    }
+
+    // 구독자 수 기반 채널 접근 권한 확인
+    const subscriberCount = await this.userService.getMaxSubscriberCount(user.id);
+    const aboveMin = subscriberCount >= channel.minSubscribers;
+    const belowMax = channel.maxSubscribers === null || subscriberCount <= channel.maxSubscribers;
+
+    if (!aboveMin || !belowMax) {
+      return {
+        statusCode: HttpStatus.FORBIDDEN,
+        message: '해당 채널에 접근 권한이 없습니다',
+      };
     }
 
     return this.postService.create(user.id, dto);

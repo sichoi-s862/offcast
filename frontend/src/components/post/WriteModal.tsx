@@ -160,9 +160,7 @@ const ImagesContainer = styled.div`
 
 const ImageWrapper = styled.div`
   position: relative;
-  border-radius: 8px;
   overflow: hidden;
-  border: 1px solid #374151;
 
   img {
     display: block;
@@ -292,10 +290,12 @@ export const WriteModal: React.FC<WriteModalProps> = ({
 
   const { channels } = useChannelStore();
 
-  // 접근 가능한 채널만 필터링
-  const accessibleChannels = channels.filter(
-    (ch) => currentUser.rawSubCount >= ch.minSubscribers
-  );
+  // 접근 가능한 채널만 필터링 (min/max 범위 체크)
+  const accessibleChannels = channels.filter((ch) => {
+    const aboveMin = currentUser.rawSubCount >= ch.minSubscribers;
+    const belowMax = ch.maxSubscribers === null || currentUser.rawSubCount <= ch.maxSubscribers;
+    return aboveMin && belowMax;
+  });
 
   const selectedChannel = channels.find((ch) => ch.id === selectedChannelId);
   const isValid = title.trim() && content.trim();

@@ -78,16 +78,8 @@ export const useCommentStore = create<CommentState>((set, get) => ({
     try {
       const newComment = await createComment(data);
 
-      if (data.parentId) {
-        // 답글인 경우 부모 댓글의 replies에 추가
-        get().addReplyLocally(data.parentId, newComment);
-      } else {
-        // 일반 댓글인 경우 목록에 추가
-        set((state) => ({
-          comments: [newComment, ...state.comments],
-          total: state.total + 1,
-        }));
-      }
+      // 댓글 생성 후 전체 목록 다시 불러오기 (다른 사용자 댓글도 반영)
+      await get().fetchComments(data.postId);
 
       set({ isSubmitting: false, replyingToId: null });
       return newComment;

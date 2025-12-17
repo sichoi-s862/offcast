@@ -168,4 +168,22 @@ export class ChannelController {
     await this.channelService.seedDefaultChannels();
     return { message: '기본 채널이 생성되었습니다' };
   }
+
+  /**
+   * 채널 리셋 후 재시드 (개발용)
+   */
+  @Public()
+  @Post('reset')
+  @ApiOperation({
+    summary: '채널 리셋 후 재시드 (개발용)',
+    description: '모든 채널 삭제 후 기본 채널 재생성',
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: '리셋 완료',
+  })
+  async reset() {
+    await this.channelService.resetAndSeedChannels();
+    return { message: '채널이 리셋되었습니다' };
+  }
 }

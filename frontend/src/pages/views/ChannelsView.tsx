@@ -157,15 +157,18 @@ const getIcon = (channelId: string, slug?: string) => {
   return <Tv />;
 };
 
-// 구독자 수 포맷
-const formatMinSubs = (minSubs: number): string => {
-  if (minSubs >= 1000000) {
-    return `${minSubs / 10000}만+`;
-  }
-  if (minSubs >= 10000) {
-    return `${minSubs / 10000}만+`;
-  }
-  return '';
+// 구독자 수 포맷 (구간 표시)
+const formatSubsRange = (minSubs: number, maxSubs: number | null): string => {
+  const formatNum = (n: number): string => {
+    if (n >= 1000000) return `${n / 10000}만`;
+    if (n >= 10000) return `${n / 10000}만`;
+    if (n >= 1000) return `${n / 1000}천`;
+    return n.toString();
+  };
+
+  if (minSubs === 0) return '';
+  if (maxSubs === null) return `${formatNum(minSubs)}+`;
+  return `${formatNum(minSubs)}~${formatNum(maxSubs)}`;
 };
 
 export const ChannelsView: React.FC<ChannelsViewProps> = ({ currentUser, onChannelSelect }) => {
@@ -211,8 +214,11 @@ export const ChannelsView: React.FC<ChannelsViewProps> = ({ currentUser, onChann
   return (
     <Container>
       {channels.map((channel) => {
-        const isLocked = currentUser.rawSubCount < channel.minSubscribers;
-        const minSubsText = formatMinSubs(channel.minSubscribers);
+        // min/max 범위 체크
+        const belowMin = currentUser.rawSubCount < channel.minSubscribers;
+        const aboveMax = channel.maxSubscribers !== null && currentUser.rawSubCount > channel.maxSubscribers;
+        const isLocked = belowMin || aboveMax;
+        const rangeText = formatSubsRange(channel.minSubscribers, channel.maxSubscribers);
 
         return (
           <ChannelCard
@@ -223,7 +229,7 @@ export const ChannelsView: React.FC<ChannelsViewProps> = ({ currentUser, onChann
             {isLocked && (
               <LockOverlay>
                 <Lock />
-                {minSubsText && <LockText>{minSubsText} 이상</LockText>}
+                {rangeText && <LockText>{rangeText}</LockText>}
               </LockOverlay>
             )}
             <ChannelIcon $locked={isLocked}>

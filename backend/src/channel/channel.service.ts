@@ -161,11 +161,20 @@ export class ChannelService {
   }
 
   /**
+   * 모든 채널 삭제 후 재생성 (개발용)
+   */
+  async resetAndSeedChannels(): Promise<void> {
+    // 모든 채널 삭제 후 새로 생성
+    await this.prisma.channel.deleteMany({});
+    await this.seedDefaultChannels();
+  }
+
+  /**
    * 기본 채널 시드 데이터 생성
    */
   async seedDefaultChannels(): Promise<void> {
     const defaultChannels: CreateChannelDto[] = [
-      // 등급별 라운지
+      // 등급별 라운지 (구간별 분리 - 해당 구간만 접근 가능)
       {
         name: '자유 게시판',
         slug: 'free',
@@ -174,96 +183,115 @@ export class ChannelService {
         sortOrder: 0,
       },
       {
-        name: '1만 라운지',
-        slug: 'lounge-10k',
-        description: '구독자 1만 이상 크리에이터 전용',
-        minSubscribers: 10000,
+        name: '100명대 라운지',
+        slug: 'lounge-100',
+        description: '구독자 100~999명 크리에이터 전용',
+        minSubscribers: 100,
+        maxSubscribers: 999,
         sortOrder: 1,
       },
       {
-        name: '10만 라운지',
-        slug: 'lounge-100k',
-        description: '구독자 10만 이상 크리에이터 전용',
-        minSubscribers: 100000,
+        name: '1천명대 라운지',
+        slug: 'lounge-1k',
+        description: '구독자 1,000~9,999명 크리에이터 전용',
+        minSubscribers: 1000,
+        maxSubscribers: 9999,
         sortOrder: 2,
       },
       {
-        name: '100만 라운지',
+        name: '1만명대 라운지',
+        slug: 'lounge-10k',
+        description: '구독자 10,000~99,999명 크리에이터 전용',
+        minSubscribers: 10000,
+        maxSubscribers: 99999,
+        sortOrder: 3,
+      },
+      {
+        name: '10만명대 라운지',
+        slug: 'lounge-100k',
+        description: '구독자 100,000~999,999명 크리에이터 전용',
+        minSubscribers: 100000,
+        maxSubscribers: 999999,
+        sortOrder: 4,
+      },
+      {
+        name: '100만+ 라운지',
         slug: 'lounge-1m',
         description: '구독자 100만 이상 크리에이터 전용',
         minSubscribers: 1000000,
-        sortOrder: 3,
+        sortOrder: 5,
       },
-      // 크리에이터 관심 주제
+      // 컨텐츠 카테고리 (스트리머 많은 순 5개)
       {
-        name: '수익화/광고',
-        slug: 'monetization',
-        description: '광고 수익, 스폰서십, 협찬 관련 정보 공유',
-        minSubscribers: 1000,
+        name: '게임',
+        slug: 'gaming',
+        description: 'PC/콘솔/모바일 게임 컨텐츠',
+        minSubscribers: 0,
         sortOrder: 10,
       },
       {
-        name: '장비/세팅',
-        slug: 'gear',
-        description: '카메라, 마이크, 조명, 편집 장비 추천',
+        name: '먹방/쿡방',
+        slug: 'food',
+        description: '먹방, 요리, 음식 리뷰 컨텐츠',
         minSubscribers: 0,
         sortOrder: 11,
       },
       {
-        name: '편집/썸네일',
-        slug: 'editing',
-        description: '영상 편집, 썸네일 디자인 팁 공유',
+        name: '일상/브이로그',
+        slug: 'vlog',
+        description: '일상 공유, 브이로그 컨텐츠',
         minSubscribers: 0,
         sortOrder: 12,
       },
       {
-        name: '알고리즘/성장',
-        slug: 'growth',
-        description: '조회수, 구독자 성장 전략 논의',
-        minSubscribers: 1000,
+        name: '음악/커버',
+        slug: 'music',
+        description: '음악, 커버, 작곡 컨텐츠',
+        minSubscribers: 0,
         sortOrder: 13,
       },
       {
-        name: '저작권/법률',
-        slug: 'legal',
-        description: '저작권, 계약서, 세금 관련 정보',
+        name: '뷰티/패션',
+        slug: 'beauty',
+        description: '뷰티, 패션, 스타일링 컨텐츠',
         minSubscribers: 0,
         sortOrder: 14,
       },
+      // 일반 관심 주제 (5개)
       {
-        name: 'MCN/소속사',
-        slug: 'mcn',
-        description: 'MCN 계약, 소속사 경험담 공유',
-        minSubscribers: 5000,
-        sortOrder: 15,
-      },
-      {
-        name: '번아웃/멘탈관리',
-        slug: 'mental-health',
-        description: '번아웃 극복, 악플 대처, 멘탈 관리',
+        name: '재테크/투자',
+        slug: 'investment',
+        description: '주식, 코인, 부동산, 재테크 이야기',
         minSubscribers: 0,
-        sortOrder: 16,
+        sortOrder: 20,
       },
       {
-        name: '콜라보/네트워킹',
-        slug: 'collab',
-        description: '콜라보 파트너 찾기, 크리에이터 모임',
-        minSubscribers: 5000,
-        sortOrder: 17,
-      },
-      {
-        name: '라이브/스트리밍',
-        slug: 'streaming',
-        description: '라이브 방송 노하우, 후원 시스템',
+        name: '건강/운동',
+        slug: 'health',
+        description: '헬스, 다이어트, 건강 관리',
         minSubscribers: 0,
-        sortOrder: 18,
+        sortOrder: 21,
       },
       {
-        name: '쇼츠/릴스',
-        slug: 'shorts',
-        description: '숏폼 콘텐츠 제작 팁',
+        name: '여행/맛집',
+        slug: 'travel',
+        description: '여행지, 맛집 추천 및 후기',
         minSubscribers: 0,
-        sortOrder: 19,
+        sortOrder: 22,
+      },
+      {
+        name: 'IT/테크',
+        slug: 'tech',
+        description: '전자기기, 앱, 테크 소식',
+        minSubscribers: 0,
+        sortOrder: 23,
+      },
+      {
+        name: '자유토크',
+        slug: 'talk',
+        description: '일상 잡담, 고민 상담, 자유 주제',
+        minSubscribers: 0,
+        sortOrder: 24,
       },
     ];
 

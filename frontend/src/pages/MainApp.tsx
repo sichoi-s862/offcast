@@ -1,26 +1,25 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import styled from 'styled-components';
+import { useNavigate } from 'react-router-dom';
 import { Search, X, Edit3 } from 'lucide-react';
 import { OffcastLogo } from '../components/icons/PlatformIcons';
 import { BottomNav } from '../components/layout/BottomNav';
 import { WriteModal } from '../components/post/WriteModal';
 import { FeedView, ChannelsView, MyPageView } from './views';
-import { PostDetail } from './PostDetail';
 import {
   ContactPage,
   CustomerCenterPage,
-  PrivacyPage,
   MyPostsPage,
   MyInfoPage,
   EditNickPage
 } from './subpages';
 import type { CurrentUser, ApiPost, CreatePostDto } from '../types';
-import { usePostStore, useChannelStore } from '../stores';
+import { usePostStore, useChannelStore, useAuthStore } from '../stores';
+import { incrementAppHistory } from '../App';
 
 interface MainAppProps {
   currentUser: CurrentUser;
-  onLogout: () => void;
-  onUpdateNickname: (nickname: string) => void;
+  initialTab?: 'home' | 'topics' | 'my';
 }
 
 const AppContainer = styled.div`
@@ -185,17 +184,16 @@ const FAB = styled.button`
   }
 `;
 
-type Screen = 'main' | 'my_posts' | 'my_info' | 'edit_nick' | 'contact' | 'customer_center' | 'privacy';
+type Screen = 'main' | 'my_posts' | 'my_info' | 'edit_nick' | 'contact' | 'customer_center';
 
 export const MainApp: React.FC<MainAppProps> = ({
   currentUser,
-  onLogout,
-  onUpdateNickname
+  initialTab = 'home'
 }) => {
-  const [activeTab, setActiveTab] = useState('home');
+  const navigate = useNavigate();
   const [currentScreen, setCurrentScreen] = useState<Screen>('main');
-  const [selectedPost, setSelectedPost] = useState<ApiPost | null>(null);
   const [isWriteOpen, setIsWriteOpen] = useState(false);
+  const [selectedChannelId, setSelectedChannelId] = useState<string | null>(null);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
@@ -206,6 +204,31 @@ export const MainApp: React.FC<MainAppProps> = ({
   // Zustand 스토어
   const { createNewPost, refreshPosts } = usePostStore();
   const { fetchChannels } = useChannelStore();
+  const { logout, setUser } = useAuthStore();
+
+  // URL 기반 탭 (initialTab을 사용)
+  const activeTab = initialTab;
+
+  // 탭 전환 핸들러 (URL로 이동)
+  const handleTabChange = useCallback((tab: string) => {
+    const routes: Record<string, string> = {
+      'home': '/home',
+      'topics': '/channels',
+      'my': '/my'
+    };
+    navigate(routes[tab] || '/home');
+  }, [navigate]);
+
+  // 로그아웃 핸들러
+  const handleLogout = useCallback(() => {
+    logout();
+    navigate('/home');
+  }, [logout, navigate]);
+
+  // 닉네임 업데이트 핸들러
+  const handleUpdateNickname = useCallback((nickname: string) => {
+    setUser({ ...currentUser, nickname });
+  }, [currentUser, setUser]);
 
   // 초기 로드
   useEffect(() => {
@@ -244,7 +267,7 @@ export const MainApp: React.FC<MainAppProps> = ({
   ) => {
     try {
       const postData: CreatePostDto = {
-        channelId: channelId || 'free',
+        channelId,
         title,
         content,
         imageUrls: images.length > 0 ? images.map(img => img.url) : undefined,
@@ -273,27 +296,22 @@ export const MainApp: React.FC<MainAppProps> = ({
     }
   }, [isSearchActive]);
 
-  // 게시글 클릭 핸들러
+  // 게시글 클릭 핸들러 - URL로 이동
   const handlePostClick = useCallback((post: ApiPost) => {
-    setSelectedPost(post);
-  }, []);
+    incrementAppHistory();
+    navigate(`/post/${post.id}`);
+  }, [navigate]);
 
   // 채널 선택 핸들러 (채널 탭에서 선택 시 홈으로 이동)
-  const handleChannelSelect = useCallback((_channelId: string) => {
-    setActiveTab('home');
-    // FeedView에서 해당 채널 필터가 자동 적용됨
-  }, []);
+  const handleChannelSelect = useCallback((channelId: string) => {
+    setSelectedChannelId(channelId);
+    navigate('/home');
+  }, [navigate]);
 
-  // 게시글 상세 페이지
-  if (selectedPost) {
-    return (
-      <PostDetail
-        postId={selectedPost.id}
-        currentUser={currentUser}
-        onBack={() => setSelectedPost(null)}
-      />
-    );
-  }
+  // 채널 필터 해제
+  const handleClearChannel = useCallback(() => {
+    setSelectedChannelId(null);
+  }, []);
 
   // 서브 페이지들
   if (currentScreen === 'my_posts') {
@@ -313,7 +331,7 @@ export const MainApp: React.FC<MainAppProps> = ({
       <EditNickPage
         currentUser={currentUser}
         onBack={() => setCurrentScreen('main')}
-        onUpdateNickname={onUpdateNickname}
+        onUpdateNickname={handleUpdateNickname}
       />
     );
   }
@@ -322,9 +340,6 @@ export const MainApp: React.FC<MainAppProps> = ({
   }
   if (currentScreen === 'customer_center') {
     return <CustomerCenterPage onBack={() => setCurrentScreen('main')} />;
-  }
-  if (currentScreen === 'privacy') {
-    return <PrivacyPage onBack={() => setCurrentScreen('main')} />;
   }
 
   return (
@@ -373,7 +388,9 @@ export const MainApp: React.FC<MainAppProps> = ({
           <FeedView
             currentUser={currentUser}
             searchQuery={debouncedSearchTerm}
+            selectedChannelId={selectedChannelId}
             onPostClick={handlePostClick}
+            onClearChannel={handleClearChannel}
           />
         )}
         {activeTab === 'topics' && (
@@ -385,13 +402,13 @@ export const MainApp: React.FC<MainAppProps> = ({
         {activeTab === 'my' && (
           <MyPageView
             currentUser={currentUser}
-            onLogout={onLogout}
+            onLogout={handleLogout}
             onNavigate={setCurrentScreen}
           />
         )}
       </Main>
 
-      {!selectedPost && activeTab !== 'my' && !isWriteOpen && (
+      {activeTab !== 'my' && !isWriteOpen && (
         <FABContainer>
           <FAB onClick={() => setIsWriteOpen(true)}>
             <Edit3 />
@@ -406,7 +423,7 @@ export const MainApp: React.FC<MainAppProps> = ({
         currentUser={currentUser}
       />
 
-      <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
+      <BottomNav activeTab={activeTab} onTabChange={handleTabChange} />
     </AppContainer>
   );
 };

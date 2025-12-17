@@ -1,19 +1,22 @@
 import React from 'react';
 import styled, { keyframes } from 'styled-components';
+import { useNavigate } from 'react-router-dom';
 import {
   ChevronRight,
   AlignLeft,
   FileText,
   Edit3,
   Shield,
+  ScrollText,
   MessageSquare,
   HelpCircle,
   LogOut
 } from 'lucide-react';
 import { PlatformIcon } from '../../components/common/PlatformIcon';
 import type { CurrentUser } from '../../types';
+import { incrementAppHistory } from '../../App';
 
-type Screen = 'main' | 'my_posts' | 'my_info' | 'edit_nick' | 'contact' | 'customer_center' | 'privacy';
+type Screen = 'main' | 'my_posts' | 'my_info' | 'edit_nick' | 'contact' | 'customer_center';
 
 interface MyPageViewProps {
   currentUser: CurrentUser;
@@ -135,6 +138,8 @@ export const MyPageView: React.FC<MyPageViewProps> = ({
   onLogout,
   onNavigate
 }) => {
+  const navigate = useNavigate();
+
   return (
     <Container>
       <Content>
@@ -173,7 +178,14 @@ export const MyPageView: React.FC<MyPageViewProps> = ({
         </MenuCard>
 
         <MenuCard>
-          <MenuItem onClick={() => onNavigate('privacy')}>
+          <MenuItem onClick={() => { incrementAppHistory(); navigate('/terms'); }}>
+            <MenuItemLeft>
+              <MenuIcon><ScrollText /></MenuIcon>
+              <MenuText>서비스 이용약관</MenuText>
+            </MenuItemLeft>
+            <ChevronIcon><ChevronRight /></ChevronIcon>
+          </MenuItem>
+          <MenuItem onClick={() => { incrementAppHistory(); navigate('/privacy'); }}>
             <MenuItemLeft>
               <MenuIcon><Shield /></MenuIcon>
               <MenuText>개인정보 처리방침</MenuText>
