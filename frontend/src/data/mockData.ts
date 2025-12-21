@@ -2,7 +2,7 @@ import type { Post } from '../types';
 import { formatSubscriberCount } from '../utils/format';
 
 const generateDummyPosts = (): Post[] => {
-  const platforms = ['YouTube', 'TikTok', 'Chzzk', 'SOOP'];
+  const platforms = ['YouTube', 'TikTok', 'Twitter'];
   const titles = [
     '이번 알고리즘 변경점 분석했습니다', '조명 세팅 질문드립니다', '편집자 구인 팁 좀', '합방 하실 분 계신가요?',
     '수익 정산 원래 이렇게 느린가요?', '악플 고소 후기', '채널 방향성 고민입니다',
@@ -66,7 +66,7 @@ export const INITIAL_POSTS: Post[] = [
   },
   {
     id: 2,
-    authorInfo: 'Chzzk|게임하는형|5000명+',
+    authorInfo: 'Twitter|게임하는형|5000명+',
     channelId: 'gear',
     title: '투컴 세팅 오디오 인터페이스 추천 좀',
     content: '야마하 AG03 생각 중인데 괜찮을까요? 게임 소리랑 디코 소리 분리하고 싶습니다.',
@@ -90,7 +90,7 @@ export const INITIAL_POSTS: Post[] = [
   },
   {
     id: 4,
-    authorInfo: 'SOOP|보라장인|100명+',
+    authorInfo: 'YouTube|보라장인|100명+',
     channelId: 'free',
     title: '오늘 방송 대박났네요 ㅋㅋㅋ',
     content: '시청자 수 최고 기록 찍었습니다. 다들 화이팅하세요!',

@@ -83,8 +83,7 @@ const getDefaultSubscriberCount = (provider: string): number => {
   const counts: Record<string, number> = {
     YOUTUBE: 25000,
     TIKTOK: 50000,
-    CHZZK: 8000,
-    SOOP: 120000,
+    TWITTER: 8000,
   };
   return counts[provider] || 10000;
 };

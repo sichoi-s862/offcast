@@ -57,6 +57,7 @@ describe('ChannelService', () => {
       findUnique: jest.fn(),
       findFirst: jest.fn(),
       create: jest.fn(),
+      deleteMany: jest.fn(),
     },
     channelAccess: {
       findUnique: jest.fn(),
@@ -250,6 +251,104 @@ describe('ChannelService', () => {
 
       expect(result).toBeDefined();
       expect(mockPrismaService.channelAccess.upsert).toHaveBeenCalled();
+    });
+  });
+
+  describe('refreshAccessBySubscriberCount', () => {
+    it('구독자 수에 따라 접근 권한을 갱신해야 함', async () => {
+      mockPrismaService.channel.findMany.mockResolvedValue([mockChannel]);
+      mockPrismaService.channelAccess.upsert.mockResolvedValue({
+        id: 'access-1',
+        userId: 'user-1',
+        channelId: 'channel-1',
+        expiresAt: new Date(),
+      });
+
+      const result = await service.refreshAccessBySubscriberCount('user-1', 50000);
+
+      expect(result).toHaveLength(1);
+      expect(mockPrismaService.channelAccess.upsert).toHaveBeenCalled();
+    });
+
+    it('접근 가능한 채널이 없으면 빈 배열을 반환해야 함', async () => {
+      mockPrismaService.channel.findMany.mockResolvedValue([]);
+
+      const result = await service.refreshAccessBySubscriberCount('user-1', 50);
+
+      expect(result).toEqual([]);
+    });
+  });
+
+  describe('getUserAccesses', () => {
+    it('사용자의 채널 접근 권한 목록을 반환해야 함', async () => {
+      mockPrismaService.channelAccess.findMany.mockResolvedValue([
+        {
+          id: 'access-1',
+          userId: 'user-1',
+          channelId: 'channel-1',
+          expiresAt: new Date(Date.now() + 86400000),
+          channel: mockChannel,
+        },
+      ]);
+
+      const result = await service.getUserAccesses('user-1');
+
+      expect(result).toHaveLength(1);
+      expect(mockPrismaService.channelAccess.findMany).toHaveBeenCalled();
+    });
+
+    it('접근 권한이 없으면 빈 배열을 반환해야 함', async () => {
+      mockPrismaService.channelAccess.findMany.mockResolvedValue([]);
+
+      const result = await service.getUserAccesses('user-1');
+
+      expect(result).toEqual([]);
+    });
+  });
+
+  describe('resetAndSeedChannels', () => {
+    it('모든 채널을 삭제하고 기본 채널을 생성해야 함', async () => {
+      mockPrismaService.channel.deleteMany.mockResolvedValue({ count: 5 });
+      mockPrismaService.channel.findUnique.mockResolvedValue(null);
+      mockPrismaService.channel.create.mockImplementation(({ data }) => ({
+        id: `channel-${data.slug}`,
+        ...data,
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }));
+
+      await service.resetAndSeedChannels();
+
+      expect(mockPrismaService.channel.deleteMany).toHaveBeenCalledWith({});
+    });
+  });
+
+  describe('seedDefaultChannels', () => {
+    it('기본 채널을 생성해야 함', async () => {
+      mockPrismaService.channel.findUnique.mockResolvedValue(null);
+      mockPrismaService.channel.create.mockImplementation(({ data }) => ({
+        id: `channel-${data.slug}`,
+        ...data,
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }));
+
+      await service.seedDefaultChannels();
+
+      // 16개의 기본 채널이 생성되어야 함 (slug로 findUnique 호출)
+      expect(mockPrismaService.channel.findUnique).toHaveBeenCalled();
+      expect(mockPrismaService.channel.create).toHaveBeenCalled();
+    });
+
+    it('이미 존재하는 채널은 생성하지 않아야 함', async () => {
+      mockPrismaService.channel.findUnique.mockResolvedValue(mockChannel);
+
+      await service.seedDefaultChannels();
+
+      // 이미 존재하면 create를 호출하지 않음
+      expect(mockPrismaService.channel.create).not.toHaveBeenCalled();
     });
   });
 });

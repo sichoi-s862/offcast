@@ -3,16 +3,14 @@ import { Provider } from '@prisma/client';
 import { UserService } from '../user/user.service';
 import { YouTubeProvider, YouTubeStats } from './providers/youtube.provider';
 import { TikTokProvider, TikTokStats } from './providers/tiktok.provider';
-import { SoopProvider, SoopStats } from './providers/soop.provider';
-import { ChzzkProvider, ChzzkStats } from './providers/chzzk.provider';
+import { TwitchProvider, TwitchStats } from './providers/twitch.provider';
 
-export type SocialProvider = 'youtube' | 'tiktok' | 'soop' | 'chzzk';
+export type SocialProvider = 'youtube' | 'tiktok' | 'twitch';
 
 export interface AllStats {
   youtube?: YouTubeStats;
   tiktok?: TikTokStats;
-  soop?: SoopStats;
-  chzzk?: ChzzkStats;
+  twitch?: TwitchStats;
 }
 
 @Injectable()
@@ -21,8 +19,7 @@ export class SocialService {
     private userService: UserService,
     private youtubeProvider: YouTubeProvider,
     private tiktokProvider: TikTokProvider,
-    private soopProvider: SoopProvider,
-    private chzzkProvider: ChzzkProvider,
+    private twitchProvider: TwitchProvider,
   ) {}
 
   async getYouTubeStats(userId: string): Promise<YouTubeStats> {
@@ -41,35 +38,25 @@ export class SocialService {
     return this.tiktokProvider.getStats(account.accessToken);
   }
 
-  async getSoopStats(userId: string): Promise<SoopStats> {
-    const account = await this.userService.getAccountByProvider(userId, Provider.SOOP);
+  async getTwitchStats(userId: string): Promise<TwitchStats> {
+    const account = await this.userService.getAccountByProvider(userId, Provider.TWITCH);
     if (!account) {
-      throw new NotFoundException('SOOP account not linked');
+      throw new NotFoundException('Twitch account not linked');
     }
-    return this.soopProvider.getStats(account.accessToken);
-  }
-
-  async getChzzkStats(userId: string): Promise<ChzzkStats> {
-    const account = await this.userService.getAccountByProvider(userId, Provider.CHZZK);
-    if (!account) {
-      throw new NotFoundException('Chzzk account not linked');
-    }
-    return this.chzzkProvider.getStats(account.accessToken);
+    return this.twitchProvider.getStats(account.accessToken);
   }
 
   async getStatsByProvider(
     userId: string,
     provider: SocialProvider,
-  ): Promise<YouTubeStats | TikTokStats | SoopStats | ChzzkStats> {
+  ): Promise<YouTubeStats | TikTokStats | TwitchStats> {
     switch (provider) {
       case 'youtube':
         return this.getYouTubeStats(userId);
       case 'tiktok':
         return this.getTikTokStats(userId);
-      case 'soop':
-        return this.getSoopStats(userId);
-      case 'chzzk':
-        return this.getChzzkStats(userId);
+      case 'twitch':
+        return this.getTwitchStats(userId);
       default:
         throw new BadRequestException(`Unknown provider: ${provider}`);
     }
@@ -93,11 +80,8 @@ export class SocialService {
             case 'tiktok':
               stats.tiktok = await this.tiktokProvider.getStats(account.accessToken);
               break;
-            case 'soop':
-              stats.soop = await this.soopProvider.getStats(account.accessToken);
-              break;
-            case 'chzzk':
-              stats.chzzk = await this.chzzkProvider.getStats(account.accessToken);
+            case 'twitch':
+              stats.twitch = await this.twitchProvider.getStats(account.accessToken);
               break;
           }
         } catch (error) {

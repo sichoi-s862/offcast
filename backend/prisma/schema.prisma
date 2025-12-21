@@ -118,8 +118,7 @@ model Account {
 enum Provider {
   YOUTUBE
   TIKTOK
-  CHZZK
-  SOOP
+  TWITCH
 }
 
 // ============================================

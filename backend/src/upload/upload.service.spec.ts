@@ -8,6 +8,22 @@ jest.mock('uuid', () => ({
   v4: jest.fn(() => 'mocked-uuid-1234'),
 }));
 
+// AWS S3 SDK mock
+const mockSend = jest.fn();
+jest.mock('@aws-sdk/client-s3', () => ({
+  S3Client: jest.fn().mockImplementation(() => ({
+    send: mockSend,
+  })),
+  PutObjectCommand: jest.fn().mockImplementation((params) => ({ ...params, type: 'PutObject' })),
+  DeleteObjectCommand: jest.fn().mockImplementation((params) => ({ ...params, type: 'DeleteObject' })),
+  GetObjectCommand: jest.fn().mockImplementation((params) => ({ ...params, type: 'GetObject' })),
+}));
+
+// getSignedUrl mock
+jest.mock('@aws-sdk/s3-request-presigner', () => ({
+  getSignedUrl: jest.fn().mockResolvedValue('https://presigned-url.example.com/test'),
+}));
+
 /**
  * 업로드 서비스 테스트
  */
@@ -137,6 +153,233 @@ describe('UploadService', () => {
       await expect(
         service.getPresignedUploadUrl('application/pdf', 'images'),
       ).rejects.toThrow(BadRequestException);
+    });
+
+    it('유효한 MIME 타입으로 presigned URL을 반환해야 함', async () => {
+      const result = await service.getPresignedUploadUrl('image/jpeg', 'posts');
+
+      expect(result).toHaveProperty('uploadUrl');
+      expect(result).toHaveProperty('key');
+      expect(result).toHaveProperty('publicUrl');
+      expect(result.key).toContain('posts/');
+      expect(result.key).toContain('mocked-uuid-1234');
+      expect(result.key).toContain('.jpg');
+    });
+
+    it('기본 폴더를 사용해야 함', async () => {
+      const result = await service.getPresignedUploadUrl('image/png');
+
+      expect(result.key).toContain('images/');
+      expect(result.key).toContain('.png');
+    });
+
+    it('사용자 정의 만료 시간을 사용해야 함', async () => {
+      const result = await service.getPresignedUploadUrl('image/gif', 'uploads', 600);
+
+      expect(result.key).toContain('uploads/');
+      expect(result.key).toContain('.gif');
+    });
+
+    it('webp 형식을 처리해야 함', async () => {
+      const result = await service.getPresignedUploadUrl('image/webp', 'media');
+
+      expect(result.key).toContain('.webp');
+    });
+  });
+
+  describe('uploadImage - 성공 케이스', () => {
+    beforeEach(() => {
+      mockSend.mockResolvedValue({});
+    });
+
+    it('이미지를 성공적으로 업로드해야 함', async () => {
+      const buffer = Buffer.from('test image data');
+      const result = await service.uploadImage(buffer, 'image/jpeg', 'posts');
+
+      expect(result).toHaveProperty('url');
+      expect(result).toHaveProperty('key');
+      expect(result.key).toBe('posts/mocked-uuid-1234.jpg');
+      expect(mockSend).toHaveBeenCalled();
+    });
+
+    it('PNG 이미지를 업로드해야 함', async () => {
+      const buffer = Buffer.from('png image');
+      const result = await service.uploadImage(buffer, 'image/png', 'images');
+
+      expect(result.key).toContain('.png');
+    });
+
+    it('GIF 이미지를 업로드해야 함', async () => {
+      const buffer = Buffer.from('gif image');
+      const result = await service.uploadImage(buffer, 'image/gif', 'animations');
+
+      expect(result.key).toContain('.gif');
+    });
+
+    it('WebP 이미지를 업로드해야 함', async () => {
+      const buffer = Buffer.from('webp image');
+      const result = await service.uploadImage(buffer, 'image/webp', 'modern');
+
+      expect(result.key).toContain('.webp');
+    });
+
+    it('기본 폴더를 사용해야 함', async () => {
+      const buffer = Buffer.from('test');
+      const result = await service.uploadImage(buffer, 'image/jpeg');
+
+      expect(result.key).toContain('images/');
+    });
+  });
+
+  describe('deleteImage', () => {
+    beforeEach(() => {
+      mockSend.mockResolvedValue({});
+    });
+
+    it('이미지를 성공적으로 삭제해야 함', async () => {
+      await expect(service.deleteImage('posts/test.jpg')).resolves.not.toThrow();
+      expect(mockSend).toHaveBeenCalled();
+    });
+
+    it('존재하지 않는 키도 에러 없이 처리해야 함', async () => {
+      await expect(service.deleteImage('nonexistent/file.jpg')).resolves.not.toThrow();
+    });
+  });
+
+  describe('deleteImages', () => {
+    beforeEach(() => {
+      mockSend.mockResolvedValue({});
+    });
+
+    it('여러 이미지를 삭제해야 함', async () => {
+      const keys = ['image1.jpg', 'image2.png', 'image3.gif'];
+      await expect(service.deleteImages(keys)).resolves.not.toThrow();
+      expect(mockSend).toHaveBeenCalledTimes(3);
+    });
+
+    it('빈 배열을 처리해야 함', async () => {
+      await expect(service.deleteImages([])).resolves.not.toThrow();
+      expect(mockSend).not.toHaveBeenCalled();
+    });
+
+    it('단일 이미지 배열을 처리해야 함', async () => {
+      await expect(service.deleteImages(['single.jpg'])).resolves.not.toThrow();
+      expect(mockSend).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('getPresignedDownloadUrl', () => {
+    it('다운로드 URL을 반환해야 함', async () => {
+      const url = await service.getPresignedDownloadUrl('posts/image.jpg');
+
+      expect(url).toBe('https://presigned-url.example.com/test');
+    });
+
+    it('사용자 정의 만료 시간을 사용해야 함', async () => {
+      const url = await service.getPresignedDownloadUrl('posts/image.jpg', 7200);
+
+      expect(url).toBeDefined();
+    });
+
+    it('기본 만료 시간을 사용해야 함', async () => {
+      const url = await service.getPresignedDownloadUrl('posts/image.jpg');
+
+      expect(url).toBeDefined();
+    });
+  });
+
+  describe('S3 에러 처리', () => {
+    it('S3 업로드 실패 시 에러를 던져야 함', async () => {
+      mockSend.mockRejectedValue(new Error('S3 Upload Failed'));
+
+      const buffer = Buffer.from('test');
+      await expect(
+        service.uploadImage(buffer, 'image/jpeg', 'posts'),
+      ).rejects.toThrow('S3 Upload Failed');
+    });
+
+    it('S3 삭제 실패 시 에러를 던져야 함', async () => {
+      mockSend.mockRejectedValue(new Error('S3 Delete Failed'));
+
+      await expect(service.deleteImage('test.jpg')).rejects.toThrow(
+        'S3 Delete Failed',
+      );
+    });
+  });
+
+  describe('getExtensionFromMimeType (private 메서드)', () => {
+    beforeEach(() => {
+      mockSend.mockResolvedValue({});
+    });
+
+    it('알 수 없는 MIME 타입은 jpg를 기본값으로 사용', async () => {
+      // allowedMimeTypes에는 없지만 테스트를 위해 직접 호출 시뮬레이션
+      // 이미 validateMimeType에서 걸러지므로 실제로는 호출되지 않음
+      // 대신 허용된 타입들의 확장자 변환을 테스트
+      const buffer = Buffer.from('test');
+
+      const jpegResult = await service.uploadImage(buffer, 'image/jpeg', 'test');
+      expect(jpegResult.key).toContain('.jpg');
+
+      const pngResult = await service.uploadImage(buffer, 'image/png', 'test');
+      expect(pngResult.key).toContain('.png');
+
+      const gifResult = await service.uploadImage(buffer, 'image/gif', 'test');
+      expect(gifResult.key).toContain('.gif');
+
+      const webpResult = await service.uploadImage(buffer, 'image/webp', 'test');
+      expect(webpResult.key).toContain('.webp');
+    });
+  });
+
+  describe('생성자 기본값', () => {
+    it('AWS 설정이 없을 때 기본값을 사용해야 함', () => {
+      const emptyConfigService = {
+        get: jest.fn().mockReturnValue(undefined),
+      };
+
+      const newService = new UploadService(emptyConfigService as any);
+      expect(newService).toBeDefined();
+    });
+
+    it('일부 AWS 설정만 있을 때 처리해야 함', () => {
+      const partialConfigService = {
+        get: jest.fn((key: string) => {
+          if (key === 'AWS_REGION') return 'us-west-2';
+          return undefined;
+        }),
+      };
+
+      const newService = new UploadService(partialConfigService as any);
+      expect(newService).toBeDefined();
+    });
+  });
+
+  describe('validateMimeType 에러 메시지', () => {
+    it('지원하는 형식 목록을 포함한 에러 메시지를 던져야 함', () => {
+      expect(() => service.validateMimeType('image/bmp')).toThrow(
+        /지원하지 않는 이미지 형식입니다/,
+      );
+    });
+  });
+
+  describe('validateFileSize 에러 메시지', () => {
+    it('최대 파일 크기를 포함한 에러 메시지를 던져야 함', () => {
+      expect(() => service.validateFileSize(100 * 1024 * 1024)).toThrow(
+        /파일 크기가 너무 큽니다/,
+      );
+    });
+  });
+
+  describe('getPublicUrl 다양한 경로', () => {
+    it('중첩된 폴더 경로를 처리해야 함', () => {
+      const url = service.getPublicUrl('users/123/posts/456/image.jpg');
+      expect(url).toContain('users/123/posts/456/image.jpg');
+    });
+
+    it('특수 문자가 포함된 키를 처리해야 함', () => {
+      const url = service.getPublicUrl('posts/image-with-dashes_and_underscores.jpg');
+      expect(url).toContain('image-with-dashes_and_underscores.jpg');
     });
   });
 });

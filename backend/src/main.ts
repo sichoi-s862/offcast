@@ -45,7 +45,7 @@ async function bootstrap() {
   const config = new DocumentBuilder()
     .setTitle('Offcast OAuth API')
     .setDescription(
-      'OAuth 인증 서버 API - YouTube, TikTok, SOOP, Instagram, Chzzk 로그인 및 구독자/팔로워 통계',
+      'OAuth 인증 서버 API - YouTube, TikTok, Twitch 로그인 및 구독자/팔로워 통계',
     )
     .setVersion('1.0')
     .addBearerAuth()

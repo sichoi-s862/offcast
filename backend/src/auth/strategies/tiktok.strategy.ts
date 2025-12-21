@@ -8,6 +8,7 @@ export interface TikTokProfile {
   id: string;
   displayName: string;
   avatarUrl: string;
+  followerCount: number;
 }
 
 @Injectable()
@@ -45,7 +46,7 @@ export class TikTokStrategy extends PassportStrategy(Strategy, 'tiktok') {
       'https://open.tiktokapis.com/v2/user/info/',
       {
         params: {
-          fields: 'open_id,display_name,avatar_url',
+          fields: 'open_id,display_name,avatar_url,follower_count',
         },
         headers: {
           Authorization: `Bearer ${accessToken}`,
@@ -58,6 +59,7 @@ export class TikTokStrategy extends PassportStrategy(Strategy, 'tiktok') {
       id: user?.open_id || '',
       displayName: user?.display_name || '',
       avatarUrl: user?.avatar_url || '',
+      followerCount: user?.follower_count || 0,
     };
 
     return {

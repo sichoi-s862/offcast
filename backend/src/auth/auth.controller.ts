@@ -17,8 +17,7 @@ import { UserService, OAuthProfile } from '../user/user.service';
 import {
   YouTubeOAuthGuard,
   TikTokOAuthGuard,
-  SoopOAuthGuard,
-  ChzzkOAuthGuard,
+  TwitchOAuthGuard,
 } from './guards/oauth.guard';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { Public } from '../common/decorators/public.decorator';
@@ -39,11 +38,14 @@ interface OAuthRequest extends Request {
       displayName?: string;
       nickname?: string;
       username?: string;
+      name?: string;
       thumbnail?: string;
       avatarUrl?: string;
       profileImage?: string;
       profilePicture?: string;
       subscriberCount?: number;
+      followerCount?: number; // TikTok용
+      viewCount?: number; // Twitch용
     };
   };
 }
@@ -94,6 +96,7 @@ export class AuthController {
         profile.title ||
         profile.displayName ||
         profile.nickname ||
+        profile.name ||
         profile.username ||
         '',
       profileImage:
@@ -102,7 +105,7 @@ export class AuthController {
         profile.profileImage ||
         profile.profilePicture ||
         '',
-      subscriberCount: profile.subscriberCount,
+      subscriberCount: profile.subscriberCount || profile.followerCount || profile.viewCount,
     };
   }
 
@@ -128,13 +131,15 @@ export class AuthController {
       oauthProfile.title ||
       oauthProfile.displayName ||
       oauthProfile.nickname ||
+      oauthProfile.name ||
       oauthProfile.username ||
       '';
     if (channelName) {
       params.set('channelName', channelName);
     }
-    if (oauthProfile.subscriberCount !== undefined) {
-      params.set('subscriberCount', oauthProfile.subscriberCount.toString());
+    const subCount = oauthProfile.subscriberCount || oauthProfile.followerCount || oauthProfile.viewCount;
+    if (subCount !== undefined) {
+      params.set('subscriberCount', subCount.toString());
     }
 
     const redirectUrl = `${frontendUrl}/auth/callback?${params.toString()}`;
@@ -157,7 +162,7 @@ export class AuthController {
       properties: {
         provider: {
           type: 'string',
-          enum: ['YOUTUBE', 'TIKTOK', 'CHZZK', 'SOOP'],
+          enum: ['YOUTUBE', 'TIKTOK', 'TWITCH'],
           description: '플랫폼 종류',
         },
         nickname: {
@@ -230,43 +235,23 @@ export class AuthController {
   }
 
   // ============================================
-  // SOOP OAuth
+  // Twitch OAuth
   // ============================================
 
   @Public()
-  @Get('soop')
-  @UseGuards(SoopOAuthGuard)
-  @ApiOperation({ summary: 'SOOP OAuth 로그인 시작' })
-  soopLogin() {
+  @Get('twitch')
+  @UseGuards(TwitchOAuthGuard)
+  @ApiOperation({ summary: 'Twitch OAuth 로그인 시작' })
+  twitchLogin() {
     // Guard가 리다이렉트 처리
   }
 
   @Public()
-  @Get('soop/callback')
-  @UseGuards(SoopOAuthGuard)
-  @ApiOperation({ summary: 'SOOP OAuth 콜백' })
-  async soopCallback(@Req() req: OAuthRequest, @Res() res: Response) {
-    return this.handleOAuthCallback('SOOP', req, res);
-  }
-
-  // ============================================
-  // Chzzk OAuth
-  // ============================================
-
-  @Public()
-  @Get('chzzk')
-  @UseGuards(ChzzkOAuthGuard)
-  @ApiOperation({ summary: 'Chzzk OAuth 로그인 시작' })
-  chzzkLogin() {
-    // Guard가 리다이렉트 처리
-  }
-
-  @Public()
-  @Get('chzzk/callback')
-  @UseGuards(ChzzkOAuthGuard)
-  @ApiOperation({ summary: 'Chzzk OAuth 콜백' })
-  async chzzkCallback(@Req() req: OAuthRequest, @Res() res: Response) {
-    return this.handleOAuthCallback('CHZZK', req, res);
+  @Get('twitch/callback')
+  @UseGuards(TwitchOAuthGuard)
+  @ApiOperation({ summary: 'Twitch OAuth 콜백' })
+  async twitchCallback(@Req() req: OAuthRequest, @Res() res: Response) {
+    return this.handleOAuthCallback('TWITCH', req, res);
   }
 
   // ============================================

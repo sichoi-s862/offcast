@@ -17,17 +17,10 @@ export const TikTokIcon: React.FC<IconProps> = ({ className, size = 24 }) => (
   </SvgIcon>
 );
 
-export const ChzzkIcon: React.FC<IconProps> = ({ className, size = 24 }) => (
+// Twitter (X) icon - 치지직 아이콘을 임시로 사용 (나중에 교체 예정)
+export const TwitterIcon: React.FC<IconProps> = ({ className, size = 24 }) => (
   <SvgIcon viewBox="0 0 24 24" fill="currentColor" className={className} $size={size}>
     <path d="M4 2h16a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zm3.5 5v10h3V12h3v5h3V7h-3v5h-3V7h-3z"/>
-  </SvgIcon>
-);
-
-export const SoopIcon: React.FC<IconProps> = ({ className, size = 24 }) => (
-  <SvgIcon viewBox="0 0 24 24" fill="currentColor" className={className} $size={size}>
-    <circle cx="7" cy="12" r="3.5" />
-    <circle cx="17" cy="12" r="3.5" />
-    <path d="M7 12h10" stroke="currentColor" strokeWidth="2" />
   </SvgIcon>
 );
 
@@ -51,16 +44,9 @@ export const TikTokIconWrapper = styled.div<{ $size?: number }>`
   color: #22d3ee;
 `;
 
-// Chzzk icon wrapper
-export const ChzzkIconWrapper = styled.div<{ $size?: number }>`
+// Twitter icon wrapper
+export const TwitterIconWrapper = styled.div<{ $size?: number }>`
   width: ${props => props.$size || 24}px;
   height: ${props => props.$size || 24}px;
-  color: #00FFA3;
-`;
-
-// SOOP icon wrapper
-export const SoopIconWrapper = styled.div<{ $size?: number }>`
-  width: ${props => props.$size || 24}px;
-  height: ${props => props.$size || 24}px;
-  color: #3b82f6;
+  color: #1DA1F2;
 `;

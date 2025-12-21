@@ -3,8 +3,7 @@ import { SocialController } from './social.controller';
 import { SocialService } from './social.service';
 import { YouTubeProvider } from './providers/youtube.provider';
 import { TikTokProvider } from './providers/tiktok.provider';
-import { SoopProvider } from './providers/soop.provider';
-import { ChzzkProvider } from './providers/chzzk.provider';
+import { TwitchProvider } from './providers/twitch.provider';
 import { UserModule } from '../user/user.module';
 
 @Module({
@@ -14,8 +13,7 @@ import { UserModule } from '../user/user.module';
     SocialService,
     YouTubeProvider,
     TikTokProvider,
-    SoopProvider,
-    ChzzkProvider,
+    TwitchProvider,
   ],
   exports: [SocialService],
 })

@@ -41,7 +41,4 @@ export class YouTubeOAuthGuard extends createOAuthGuard('youtube') {}
 export class TikTokOAuthGuard extends createOAuthGuard('tiktok') {}
 
 @Injectable()
-export class SoopOAuthGuard extends createOAuthGuard('soop') {}
-
-@Injectable()
-export class ChzzkOAuthGuard extends createOAuthGuard('chzzk') {}
+export class TwitchOAuthGuard extends createOAuthGuard('twitch') {}

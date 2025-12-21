@@ -45,18 +45,11 @@ export class SocialController {
     return this.socialService.getTikTokStats(user.id);
   }
 
-  @Get('soop/stats')
-  @ApiOperation({ summary: 'SOOP 채널 통계' })
-  @ApiResponse({ status: HttpStatus.OK, description: '팬 수 등 채널 통계 반환' })
-  async getSoopStats(@CurrentUser() user: User) {
-    return this.socialService.getSoopStats(user.id);
-  }
-
-  @Get('chzzk/stats')
-  @ApiOperation({ summary: 'Chzzk 채널 통계' })
-  @ApiResponse({ status: HttpStatus.OK, description: '팔로워 수 등 채널 통계 반환' })
-  async getChzzkStats(@CurrentUser() user: User) {
-    return this.socialService.getChzzkStats(user.id);
+  @Get('twitch/stats')
+  @ApiOperation({ summary: 'Twitch 계정 통계' })
+  @ApiResponse({ status: HttpStatus.OK, description: '조회 수 등 계정 통계 반환' })
+  async getTwitchStats(@CurrentUser() user: User) {
+    return this.socialService.getTwitchStats(user.id);
   }
 
   @Get('all')
@@ -70,7 +63,7 @@ export class SocialController {
   @ApiOperation({ summary: '특정 플랫폼 통계 조회' })
   @ApiParam({
     name: 'provider',
-    enum: ['youtube', 'tiktok', 'soop', 'chzzk'],
+    enum: ['youtube', 'tiktok', 'twitch'],
     description: '플랫폼 이름',
   })
   @ApiResponse({ status: HttpStatus.OK, description: '플랫폼별 통계 반환' })

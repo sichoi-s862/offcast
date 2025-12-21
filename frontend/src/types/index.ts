@@ -1,4 +1,4 @@
-export type Provider = 'youtube' | 'tiktok' | 'soop' | 'chzzk';
+export type Provider = 'youtube' | 'tiktok' | 'twitter';
 export type PostStatus = 'ACTIVE' | 'HIDDEN' | 'REPORTED';
 export type CommentStatus = 'ACTIVE' | 'HIDDEN' | 'DELETED';
 
@@ -180,6 +180,7 @@ export interface SocialStats {
   provider: string;
   subscriberCount?: number;
   followerCount?: number;
+  followersCount?: number; // Twitter용
   viewCount?: number;
   videoCount?: number;
   fanCount?: number;

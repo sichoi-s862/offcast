@@ -451,7 +451,7 @@ export const getFaqCategories = async (): Promise<{ categories: Array<{ value: F
 
 // ==================== 소셜 통계 API ====================
 
-export type SocialProvider = 'youtube' | 'tiktok' | 'soop' | 'chzzk';
+export type SocialProvider = 'youtube' | 'tiktok' | 'twitter';
 
 export interface SocialAccount {
   id: string;
@@ -464,17 +464,37 @@ export interface SocialAccount {
   lastSyncedAt: string | null;
 }
 
-export interface SocialStats {
-  provider: string;
-  subscriberCount: number | null;
-  profileName: string | null;
-  profileImage: string | null;
-  lastSyncedAt: string | null;
+export interface YouTubeSocialStats {
+  subscriberCount: number;
+  videoCount: number;
+  viewCount: number;
+  channelId: string;
+  channelTitle: string;
+  thumbnailUrl: string;
+}
+
+export interface TikTokSocialStats {
+  followerCount: number;
+  followingCount: number;
+  likesCount: number;
+  videoCount: number;
+  displayName: string;
+  avatarUrl: string;
+}
+
+export interface TwitterSocialStats {
+  followersCount: number;
+  followingCount: number;
+  tweetCount: number;
+  username: string;
+  name: string;
+  profileImage: string;
 }
 
 export interface AllSocialStats {
-  accounts: SocialStats[];
-  totalSubscribers: number;
+  youtube?: YouTubeSocialStats;
+  tiktok?: TikTokSocialStats;
+  twitter?: TwitterSocialStats;
 }
 
 // 연결된 소셜 계정 목록
@@ -490,32 +510,26 @@ export const getAllSocialStats = async (): Promise<AllSocialStats> => {
 };
 
 // 특정 플랫폼 통계
-export const getSocialStatsByProvider = async (provider: SocialProvider): Promise<SocialStats> => {
-  const response = await apiClient.get<SocialStats>(`/social/${provider}/stats`);
+export const getSocialStatsByProvider = async (provider: SocialProvider): Promise<YouTubeSocialStats | TikTokSocialStats | TwitterSocialStats> => {
+  const response = await apiClient.get<YouTubeSocialStats | TikTokSocialStats | TwitterSocialStats>(`/social/${provider}/stats`);
   return response.data;
 };
 
 // YouTube 통계
-export const getYouTubeStats = async (): Promise<SocialStats> => {
-  const response = await apiClient.get<SocialStats>('/social/youtube/stats');
+export const getYouTubeStats = async (): Promise<YouTubeSocialStats> => {
+  const response = await apiClient.get<YouTubeSocialStats>('/social/youtube/stats');
   return response.data;
 };
 
 // TikTok 통계
-export const getTikTokStats = async (): Promise<SocialStats> => {
-  const response = await apiClient.get<SocialStats>('/social/tiktok/stats');
+export const getTikTokStats = async (): Promise<TikTokSocialStats> => {
+  const response = await apiClient.get<TikTokSocialStats>('/social/tiktok/stats');
   return response.data;
 };
 
-// Chzzk 통계
-export const getChzzkStats = async (): Promise<SocialStats> => {
-  const response = await apiClient.get<SocialStats>('/social/chzzk/stats');
-  return response.data;
-};
-
-// SOOP 통계
-export const getSoopStats = async (): Promise<SocialStats> => {
-  const response = await apiClient.get<SocialStats>('/social/soop/stats');
+// Twitter 통계
+export const getTwitterStats = async (): Promise<TwitterSocialStats> => {
+  const response = await apiClient.get<TwitterSocialStats>('/social/twitter/stats');
   return response.data;
 };
 
