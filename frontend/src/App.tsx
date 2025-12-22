@@ -66,7 +66,7 @@ const AccessDeniedMessage = styled.p`
 `;
 
 const BackButton = styled.button`
-  background-color: #7c3aed;
+  background-color: #00D4AA;
   color: white;
   padding: 12px 32px;
   border-radius: 8px;
@@ -74,7 +74,7 @@ const BackButton = styled.button`
   font-weight: 700;
 
   &:hover {
-    background-color: #6d28d9;
+    background-color: #00B894;
   }
 `;
 
@@ -95,12 +95,12 @@ const AccessDeniedPage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
       <IconWrapper>
         <ShieldX />
       </IconWrapper>
-      <AccessDeniedTitle>접근 권한이 없습니다</AccessDeniedTitle>
+      <AccessDeniedTitle>Access Denied</AccessDeniedTitle>
       <AccessDeniedMessage>
-        이 게시글이 속한 채널에 접근할 권한이 없습니다.<br />
-        구독자 수에 따라 접근 가능한 채널이 다릅니다.
+        You don't have access to this channel.<br />
+        Available channels depend on your subscriber count.
       </AccessDeniedMessage>
-      <BackButton onClick={onBack}>홈으로 돌아가기</BackButton>
+      <BackButton onClick={onBack}>Back to Home</BackButton>
     </AccessDeniedContainer>
   );
 };
@@ -255,7 +255,7 @@ const MainTabRoute: React.FC<{ tab: 'home' | 'topics' | 'my' }> = ({ tab }) => {
     const error = searchParams.get('error');
 
     if (error) {
-      toast.error(`로그인 실패: ${decodeURIComponent(error)}`);
+      toast.error(`Login failed: ${decodeURIComponent(error)}`);
       navigate('/home', { replace: true });
       return;
     }
@@ -295,7 +295,7 @@ const LoginRedirect: React.FC = () => {
     const error = searchParams.get('error');
 
     if (error) {
-      toast.error(`로그인 실패: ${decodeURIComponent(error)}`);
+      toast.error(`Login failed: ${decodeURIComponent(error)}`);
       navigate('/home', { replace: true });
       return;
     }
@@ -344,7 +344,7 @@ const LoginRedirect: React.FC = () => {
       }
     } catch (error) {
       console.error('Login failed:', error);
-      toast.error('로그인에 실패했습니다. 다시 시도해주세요.');
+      toast.error('Login failed. Please try again.');
       setAppState('login');
     }
   }, [selectedProvider, login, fetchChannels, navigate]);

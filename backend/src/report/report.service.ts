@@ -22,12 +22,12 @@ export class ReportService {
     // 중복 신고 확인
     const existingReport = await this.findExistingReport(reporterId, dto);
     if (existingReport) {
-      throw new ConflictException('이미 신고한 대상입니다.');
+      throw new ConflictException('You have already reported this.');
     }
 
     // 자기 자신 신고 방지
     if (dto.targetType === ReportTargetType.USER && dto.targetUserId === reporterId) {
-      throw new BadRequestException('자기 자신을 신고할 수 없습니다.');
+      throw new BadRequestException('You cannot report yourself.');
     }
 
     // 게시글/댓글 작성자 자기 신고 방지
@@ -37,7 +37,7 @@ export class ReportService {
         select: { authorId: true },
       });
       if (post?.authorId === reporterId) {
-        throw new BadRequestException('자신의 게시글을 신고할 수 없습니다.');
+        throw new BadRequestException('You cannot report your own post.');
       }
     }
 
@@ -47,7 +47,7 @@ export class ReportService {
         select: { authorId: true },
       });
       if (comment?.authorId === reporterId) {
-        throw new BadRequestException('자신의 댓글을 신고할 수 없습니다.');
+        throw new BadRequestException('You cannot report your own comment.');
       }
     }
 
@@ -71,37 +71,37 @@ export class ReportService {
     switch (dto.targetType) {
       case ReportTargetType.POST:
         if (!dto.postId) {
-          throw new BadRequestException('게시글 ID가 필요합니다.');
+          throw new BadRequestException('Post ID is required.');
         }
         const post = await this.prisma.post.findUnique({
           where: { id: dto.postId },
         });
         if (!post || post.deletedAt) {
-          throw new NotFoundException('게시글을 찾을 수 없습니다.');
+          throw new NotFoundException('Post not found.');
         }
         break;
 
       case ReportTargetType.COMMENT:
         if (!dto.commentId) {
-          throw new BadRequestException('댓글 ID가 필요합니다.');
+          throw new BadRequestException('Comment ID is required.');
         }
         const comment = await this.prisma.comment.findUnique({
           where: { id: dto.commentId },
         });
         if (!comment || comment.deletedAt) {
-          throw new NotFoundException('댓글을 찾을 수 없습니다.');
+          throw new NotFoundException('Comment not found.');
         }
         break;
 
       case ReportTargetType.USER:
         if (!dto.targetUserId) {
-          throw new BadRequestException('사용자 ID가 필요합니다.');
+          throw new BadRequestException('User ID is required.');
         }
         const user = await this.prisma.user.findUnique({
           where: { id: dto.targetUserId },
         });
         if (!user || user.deletedAt) {
-          throw new NotFoundException('사용자를 찾을 수 없습니다.');
+          throw new NotFoundException('User not found.');
         }
         break;
     }

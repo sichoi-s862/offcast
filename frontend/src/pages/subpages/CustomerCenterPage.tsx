@@ -46,7 +46,7 @@ const Question = styled.p`
 `;
 
 const QuestionMark = styled.span`
-  color: #7c3aed;
+  color: #00D4AA;
 `;
 
 const Answer = styled.p`
@@ -100,8 +100,8 @@ export const CustomerCenterPage: React.FC<CustomerCenterPageProps> = ({ onBack }
         const response = await getFaqs();
         setFaqs(response.faqs);
       } catch (err) {
-        console.error('FAQ 로딩 실패:', err);
-        setError('FAQ를 불러오는데 실패했습니다.');
+        console.error('Failed to load FAQs:', err);
+        setError('Failed to load FAQs.');
       } finally {
         setIsLoading(false);
       }
@@ -112,7 +112,7 @@ export const CustomerCenterPage: React.FC<CustomerCenterPageProps> = ({ onBack }
 
   return (
     <Container>
-      <SubPageHeader title="고객센터" onBack={onBack} />
+      <SubPageHeader title="Help Center" onBack={onBack} />
       <Content>
         {isLoading ? (
           <LoadingContainer>
@@ -121,7 +121,7 @@ export const CustomerCenterPage: React.FC<CustomerCenterPageProps> = ({ onBack }
         ) : error ? (
           <ErrorMessage>{error}</ErrorMessage>
         ) : faqs.length === 0 ? (
-          <EmptyMessage>등록된 FAQ가 없습니다.</EmptyMessage>
+          <EmptyMessage>No FAQs available.</EmptyMessage>
         ) : (
           faqs.map((faq) => (
             <FaqCard key={faq.id}>

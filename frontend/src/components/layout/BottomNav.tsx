@@ -35,11 +35,11 @@ const NavButton = styled.button<{ $active: boolean }>`
   justify-content: center;
   gap: 4px;
   padding: 8px 16px;
-  color: ${props => props.$active ? '#7c3aed' : '#6b7280'};
+  color: ${props => props.$active ? '#00D4AA' : '#6b7280'};
   transition: color 0.2s;
 
   &:hover {
-    color: ${props => props.$active ? '#7c3aed' : '#9ca3af'};
+    color: ${props => props.$active ? '#00D4AA' : '#9ca3af'};
   }
 
   svg {
@@ -59,15 +59,15 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, onTabChange }) 
       <NavInner>
         <NavButton $active={activeTab === 'home'} onClick={() => onTabChange('home')}>
           <Home />
-          <NavLabel>홈</NavLabel>
+          <NavLabel>Home</NavLabel>
         </NavButton>
         <NavButton $active={activeTab === 'topics'} onClick={() => onTabChange('topics')}>
           <MessageSquare />
-          <NavLabel>채널</NavLabel>
+          <NavLabel>Channels</NavLabel>
         </NavButton>
         <NavButton $active={activeTab === 'my'} onClick={() => onTabChange('my')}>
           <User />
-          <NavLabel>MY</NavLabel>
+          <NavLabel>My</NavLabel>
         </NavButton>
       </NavInner>
     </NavContainer>

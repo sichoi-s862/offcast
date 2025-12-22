@@ -16,7 +16,7 @@ export class BlockService {
   async blockUser(blockerId: string, blockedUserId: string): Promise<void> {
     // 자기 자신 차단 방지
     if (blockerId === blockedUserId) {
-      throw new BadRequestException('자기 자신을 차단할 수 없습니다.');
+      throw new BadRequestException('You cannot block yourself.');
     }
 
     // 차단 대상 존재 확인
@@ -24,7 +24,7 @@ export class BlockService {
       where: { id: blockedUserId },
     });
     if (!targetUser || targetUser.deletedAt) {
-      throw new NotFoundException('사용자를 찾을 수 없습니다.');
+      throw new NotFoundException('User not found.');
     }
 
     // 이미 차단했는지 확인
@@ -37,7 +37,7 @@ export class BlockService {
       },
     });
     if (existingBlock) {
-      throw new ConflictException('이미 차단한 사용자입니다.');
+      throw new ConflictException('You have already blocked this user.');
     }
 
     await this.prisma.userBlock.create({
@@ -62,7 +62,7 @@ export class BlockService {
     });
 
     if (!block) {
-      throw new NotFoundException('차단 내역이 없습니다.');
+      throw new NotFoundException('Block record not found.');
     }
 
     await this.prisma.userBlock.delete({

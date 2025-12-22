@@ -4,18 +4,15 @@ import { devLogin, getProfile, type DevLoginRequest } from '../api';
 import { setAuthToken, getAuthToken, getErrorMessage, isUnauthorizedError } from '../api/client';
 import type { CurrentUser, Provider } from '../types';
 
-// 구독자 수 포맷팅 함수
+// Subscriber count formatting
 const formatSubscriberCount = (count: number): string => {
   if (count >= 1000000) {
-    return `${Math.floor(count / 10000)}만명+`;
-  }
-  if (count >= 10000) {
-    return `${Math.floor(count / 10000)}만명+`;
+    return `${Math.floor(count / 1000000)}M+`;
   }
   if (count >= 1000) {
-    return `${Math.floor(count / 1000)}천명+`;
+    return `${Math.floor(count / 1000)}K+`;
   }
-  return `${count}명`;
+  return `${count}`;
 };
 
 interface AuthState {
@@ -84,7 +81,7 @@ export const useAuthStore = create<AuthState>()(
             isLoading: false,
           });
         } catch (error: unknown) {
-          const errorMessage = getErrorMessage(error, '로그인에 실패했습니다.');
+          const errorMessage = getErrorMessage(error, 'Login failed.');
           set({ error: errorMessage, isLoading: false });
           throw error;
         }

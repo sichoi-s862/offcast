@@ -126,16 +126,16 @@ export const MenuBottomSheet: React.FC<MenuBottomSheetProps> = ({
           {isComment && onReply && (
             <MenuItem onClick={() => { onReply(); onClose(); }}>
               <CornerDownRight />
-              <MenuText>대댓글 달기</MenuText>
+              <MenuText>Reply</MenuText>
             </MenuItem>
           )}
           <MenuItem $danger onClick={() => { onReport(); onClose(); }}>
             <Flag />
-            <MenuText>신고하기</MenuText>
+            <MenuText>Report</MenuText>
           </MenuItem>
           <MenuItem onClick={() => { onBlock(); onClose(); }}>
             <Ban />
-            <MenuText>이 사용자 차단하기</MenuText>
+            <MenuText>Block this user</MenuText>
           </MenuItem>
         </MenuList>
         <SafeArea />

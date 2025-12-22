@@ -54,7 +54,7 @@ const HelpText = styled.p`
 const SaveButton = styled.button<{ $disabled?: boolean }>`
   width: 100%;
   padding: 16px;
-  background-color: ${props => props.$disabled ? '#374151' : '#7c3aed'};
+  background-color: ${props => props.$disabled ? '#374151' : '#00D4AA'};
   border-radius: 12px;
   color: ${props => props.$disabled ? '#6b7280' : 'white'};
   font-weight: 700;
@@ -67,7 +67,7 @@ const SaveButton = styled.button<{ $disabled?: boolean }>`
   cursor: ${props => props.$disabled ? 'not-allowed' : 'pointer'};
 
   &:hover {
-    background-color: ${props => props.$disabled ? '#374151' : '#6d28d9'};
+    background-color: ${props => props.$disabled ? '#374151' : '#00B894'};
   }
 `;
 
@@ -110,7 +110,7 @@ export const EditNickPage: React.FC<EditNickPageProps> = ({
       onUpdateNickname(val.trim(), result.user);
       onBack();
     } catch (err: unknown) {
-      const errorMessage = getErrorMessage(err, '닉네임 변경에 실패했습니다.');
+      const errorMessage = getErrorMessage(err, 'Failed to change nickname.');
       setError(errorMessage);
     } finally {
       setIsSubmitting(false);
@@ -119,7 +119,7 @@ export const EditNickPage: React.FC<EditNickPageProps> = ({
 
   return (
     <Container>
-      <SubPageHeader title="닉네임 수정" onBack={onBack} />
+      <SubPageHeader title="Edit Nickname" onBack={onBack} />
       <Content>
         <Input
           type="text"
@@ -127,14 +127,14 @@ export const EditNickPage: React.FC<EditNickPageProps> = ({
           onChange={(e) => setVal(e.target.value)}
           disabled={isSubmitting}
         />
-        <HelpText>2자 이상 입력해주세요.</HelpText>
+        <HelpText>Please enter at least 2 characters.</HelpText>
         {error && <ErrorText>{error}</ErrorText>}
         <SaveButton
           $disabled={!isValid || isSubmitting}
           onClick={handleSave}
           disabled={!isValid || isSubmitting}
         >
-          {isSubmitting ? <><Spinner /> 저장 중...</> : '저장하기'}
+          {isSubmitting ? <><Spinner /> Saving...</> : 'Save'}
         </SaveButton>
       </Content>
     </Container>

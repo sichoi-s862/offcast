@@ -10,12 +10,12 @@ interface ContactPageProps {
 }
 
 const INQUIRY_CATEGORIES: Array<{ value: InquiryCategory; label: string }> = [
-  { value: 'GENERAL', label: '일반 문의' },
-  { value: 'BUG_REPORT', label: '버그 신고' },
-  { value: 'SUGGESTION', label: '기능 제안' },
-  { value: 'PARTNERSHIP', label: '제휴 문의' },
-  { value: 'ACCOUNT', label: '계정 관련' },
-  { value: 'OTHER', label: '기타' },
+  { value: 'GENERAL', label: 'General Inquiry' },
+  { value: 'BUG_REPORT', label: 'Bug Report' },
+  { value: 'SUGGESTION', label: 'Feature Suggestion' },
+  { value: 'PARTNERSHIP', label: 'Partnership' },
+  { value: 'ACCOUNT', label: 'Account Issue' },
+  { value: 'OTHER', label: 'Other' },
 ];
 
 const slideIn = keyframes`
@@ -191,11 +191,11 @@ export const ContactPage: React.FC<ContactPageProps> = ({ onBack }) => {
         title: title.trim(),
         content: content.trim(),
       });
-      toast.success('문의가 접수되었습니다. 빠른 시일 내에 답변 드리겠습니다.');
+      toast.success('Your inquiry has been submitted. We will respond as soon as possible.');
       onBack();
     } catch (err: unknown) {
       const axiosError = err as { response?: { data?: { message?: string } } };
-      const errorMessage = axiosError.response?.data?.message || '문의 접수에 실패했습니다.';
+      const errorMessage = axiosError.response?.data?.message || 'Failed to submit inquiry.';
       setError(errorMessage);
     } finally {
       setIsSubmitting(false);
@@ -204,14 +204,14 @@ export const ContactPage: React.FC<ContactPageProps> = ({ onBack }) => {
 
   return (
     <Container>
-      <SubPageHeader title="문의하기" onBack={onBack} />
+      <SubPageHeader title="Contact Us" onBack={onBack} />
       <Content>
         <Description>
-          서비스 이용 중 불편한 점이나 제안하실 내용이 있다면 보내주세요.
+          If you have any issues or suggestions, please let us know.
         </Description>
 
         <FormGroup>
-          <Label>문의 유형</Label>
+          <Label>Category</Label>
           <SelectWrapper>
             <Select
               value={category}
@@ -229,10 +229,10 @@ export const ContactPage: React.FC<ContactPageProps> = ({ onBack }) => {
         </FormGroup>
 
         <FormGroup>
-          <Label>제목</Label>
+          <Label>Subject</Label>
           <Input
             type="text"
-            placeholder="제목을 입력해주세요"
+            placeholder="Enter subject"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             disabled={isSubmitting}
@@ -241,9 +241,9 @@ export const ContactPage: React.FC<ContactPageProps> = ({ onBack }) => {
         </FormGroup>
 
         <FormGroup>
-          <Label>내용</Label>
+          <Label>Message</Label>
           <Textarea
-            placeholder="내용을 입력해주세요 (최소 10자)"
+            placeholder="Enter your message (min. 10 characters)"
             value={content}
             onChange={(e) => setContent(e.target.value)}
             disabled={isSubmitting}
@@ -260,9 +260,9 @@ export const ContactPage: React.FC<ContactPageProps> = ({ onBack }) => {
           disabled={!isValid || isSubmitting}
         >
           {isSubmitting ? (
-            <><Spinner /> 접수 중...</>
+            <><Spinner /> Submitting...</>
           ) : (
-            <>보내기 <Send /></>
+            <>Send <Send /></>
           )}
         </SubmitButton>
       </Content>

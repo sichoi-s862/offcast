@@ -157,18 +157,17 @@ const getIcon = (channelId: string, slug?: string) => {
   return <Tv />;
 };
 
-// 구독자 수 포맷 (구간 표시)
+// Format subscriber range for display
 const formatSubsRange = (minSubs: number, maxSubs: number | null): string => {
   const formatNum = (n: number): string => {
-    if (n >= 1000000) return `${n / 10000}만`;
-    if (n >= 10000) return `${n / 10000}만`;
-    if (n >= 1000) return `${n / 1000}천`;
+    if (n >= 1000000) return `${(n / 1000000).toFixed(1)}M`;
+    if (n >= 1000) return `${(n / 1000).toFixed(0)}K`;
     return n.toString();
   };
 
   if (minSubs === 0) return '';
   if (maxSubs === null) return `${formatNum(minSubs)}+`;
-  return `${formatNum(minSubs)}~${formatNum(maxSubs)}`;
+  return `${formatNum(minSubs)}-${formatNum(maxSubs)}`;
 };
 
 export const ChannelsView: React.FC<ChannelsViewProps> = ({ currentUser, onChannelSelect }) => {
@@ -204,7 +203,7 @@ export const ChannelsView: React.FC<ChannelsViewProps> = ({ currentUser, onChann
           <ErrorText>{error}</ErrorText>
           <RetryButton onClick={() => fetchChannels()} className={isLoading ? 'loading' : ''}>
             <RefreshCw />
-            다시 시도
+            Retry
           </RetryButton>
         </ErrorContainer>
       </Container>
@@ -237,7 +236,7 @@ export const ChannelsView: React.FC<ChannelsViewProps> = ({ currentUser, onChann
             </ChannelIcon>
             <ChannelName $locked={isLocked}>{channel.name}</ChannelName>
             {channel._count?.posts !== undefined && !isLocked && (
-              <PostCount>게시글 {channel._count.posts}개</PostCount>
+              <PostCount>{channel._count.posts} posts</PostCount>
             )}
           </ChannelCard>
         );

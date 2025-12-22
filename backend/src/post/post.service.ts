@@ -24,7 +24,16 @@ export interface PostListResponse {
 export type PostWithDetails = Prisma.PostGetPayload<{
   include: {
     author: {
-      select: { id: true; nickname: true };
+      select: {
+        id: true;
+        nickname: true;
+        accounts: {
+          select: {
+            provider: true;
+            subscriberCount: true;
+          };
+        };
+      };
     };
     channel: true;
     images: true;
@@ -111,7 +120,16 @@ export class PostService {
         take: limit,
         include: {
           author: {
-            select: { id: true, nickname: true },
+            select: {
+              id: true,
+              nickname: true,
+              accounts: {
+                select: {
+                  provider: true,
+                  subscriberCount: true,
+                },
+              },
+            },
           },
           channel: true,
           images: {
@@ -172,7 +190,16 @@ export class PostService {
         where,
         include: {
           author: {
-            select: { id: true, nickname: true },
+            select: {
+              id: true,
+              nickname: true,
+              accounts: {
+                select: {
+                  provider: true,
+                  subscriberCount: true,
+                },
+              },
+            },
           },
           channel: true,
           images: {
@@ -250,7 +277,16 @@ export class PostService {
         take: limit,
         include: {
           author: {
-            select: { id: true, nickname: true },
+            select: {
+              id: true,
+              nickname: true,
+              accounts: {
+                select: {
+                  provider: true,
+                  subscriberCount: true,
+                },
+              },
+            },
           },
           channel: true,
           images: {
@@ -285,7 +321,16 @@ export class PostService {
       where: { id },
       include: {
         author: {
-          select: { id: true, nickname: true },
+          select: {
+            id: true,
+            nickname: true,
+            accounts: {
+              select: {
+                provider: true,
+                subscriberCount: true,
+              },
+            },
+          },
         },
         channel: true,
         images: {
@@ -372,11 +417,11 @@ export class PostService {
     const post = await this.findById(id);
 
     if (!post) {
-      throw new NotFoundException('게시글을 찾을 수 없습니다');
+      throw new NotFoundException('Post not found');
     }
 
     if (post.authorId !== authorId) {
-      throw new ForbiddenException('수정 권한이 없습니다');
+      throw new ForbiddenException('You do not have permission to edit this post');
     }
 
     return this.prisma.$transaction(async (tx) => {
@@ -437,11 +482,11 @@ export class PostService {
     const post = await this.findById(id);
 
     if (!post) {
-      throw new NotFoundException('게시글을 찾을 수 없습니다');
+      throw new NotFoundException('Post not found');
     }
 
     if (post.authorId !== authorId) {
-      throw new ForbiddenException('삭제 권한이 없습니다');
+      throw new ForbiddenException('You do not have permission to delete this post');
     }
 
     await this.prisma.$transaction(async (tx) => {
@@ -555,7 +600,7 @@ export class PostService {
     }
 
     const account = post.author.accounts[0];
-    const nickname = post.author.nickname || account.profileName || '익명';
+    const nickname = post.author.nickname || account.profileName || 'Anonymous';
     const subscriberCount = account.subscriberCount || 0;
     const formattedCount = this.formatSubscriberCount(subscriberCount);
 
@@ -566,11 +611,11 @@ export class PostService {
    * 구독자 수 포맷팅
    */
   private formatSubscriberCount(count: number): string {
-    if (count >= 10000) {
-      return `${Math.floor(count / 10000)}만`;
+    if (count >= 1000000) {
+      return `${Math.floor(count / 1000000)}M+`;
     } else if (count >= 1000) {
-      return `${(count / 1000).toFixed(1)}천`;
+      return `${Math.floor(count / 1000)}K+`;
     }
-    return count.toString();
+    return `${count}+`;
   }
 }

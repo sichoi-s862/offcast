@@ -1,10 +1,10 @@
 import axios, { type AxiosInstance, type AxiosError, type InternalAxiosRequestConfig } from 'axios';
 import { toast } from '../stores/toastStore';
 
-// API 기본 URL (백엔드 포트: 8080)
+// API base URL (backend port: 8080)
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 
-// Axios 인스턴스 생성
+// Axios instance
 const apiClient: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
   timeout: 10000,
@@ -13,10 +13,10 @@ const apiClient: AxiosInstance = axios.create({
   },
 });
 
-// 토큰 저장소 (Zustand store에서 관리하지만, 초기화 전에도 사용 가능하도록)
+// Token storage (managed by Zustand store, but available before initialization)
 let authToken: string | null = null;
 
-// 토큰 설정 함수
+// Set token
 export const setAuthToken = (token: string | null) => {
   authToken = token;
   if (token) {
@@ -26,13 +26,13 @@ export const setAuthToken = (token: string | null) => {
   }
 };
 
-// 토큰 가져오기
+// Get token
 export const getAuthToken = (): string | null => {
   if (authToken) return authToken;
   return localStorage.getItem('accessToken');
 };
 
-// 요청 인터셉터: JWT 토큰 자동 추가
+// Request interceptor: Auto-add JWT token
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     const token = getAuthToken();
@@ -47,66 +47,66 @@ apiClient.interceptors.request.use(
 );
 
 /**
- * API 에러 메시지를 사용자 친화적으로 변환
+ * Convert API error messages to user-friendly format
  */
 const getUserFriendlyMessage = (status: number | undefined, serverMessage: string): string => {
-  // 서버 메시지 매핑 (영어 -> 한글, 기술적 -> 친화적)
+  // Server message mapping
   const messageMap: Record<string, string> = {
-    // 채널/게시글 관련
-    'Channel not found': '채널을 찾을 수 없습니다.',
-    'Post not found': '게시글을 찾을 수 없습니다.',
-    'User not found': '사용자를 찾을 수 없습니다.',
-    'Comment not found': '댓글을 찾을 수 없습니다.',
-    'You do not have access to this channel': '이 채널에 접근 권한이 없습니다.',
-    'Insufficient subscriber count': '구독자 수가 부족합니다.',
-    // 인증 관련
-    'Unauthorized': '로그인이 필요합니다.',
-    'Invalid token': '로그인 정보가 유효하지 않습니다.',
-    'Token expired': '로그인이 만료되었습니다.',
-    // 입력 검증
-    'Bad Request': '입력 정보를 확인해주세요.',
-    'Validation failed': '입력 정보를 확인해주세요.',
-    // 서버 에러
-    'Internal server error': '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.',
+    // Channel/Post related
+    'Channel not found': 'Channel not found.',
+    'Post not found': 'Post not found.',
+    'User not found': 'User not found.',
+    'Comment not found': 'Comment not found.',
+    'You do not have access to this channel': 'You don\'t have access to this channel.',
+    'Insufficient subscriber count': 'Insufficient subscriber count.',
+    // Auth related
+    'Unauthorized': 'Please log in.',
+    'Invalid token': 'Your login session is invalid.',
+    'Token expired': 'Your session has expired.',
+    // Validation
+    'Bad Request': 'Please check your input.',
+    'Validation failed': 'Please check your input.',
+    // Server errors
+    'Internal server error': 'Server error. Please try again later.',
   };
 
-  // 정확히 일치하는 메시지 찾기
+  // Exact match
   if (messageMap[serverMessage]) {
     return messageMap[serverMessage];
   }
 
-  // 부분 일치 검색
+  // Partial match
   for (const [key, value] of Object.entries(messageMap)) {
     if (serverMessage.toLowerCase().includes(key.toLowerCase())) {
       return value;
     }
   }
 
-  // HTTP 상태 코드 기반 기본 메시지
+  // HTTP status code based default messages
   const statusMessages: Record<number, string> = {
-    400: '요청 정보를 확인해주세요.',
-    403: '접근 권한이 없습니다.',
-    404: '요청한 정보를 찾을 수 없습니다.',
-    409: '이미 처리된 요청입니다.',
-    429: '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.',
-    500: '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.',
-    502: '서버에 연결할 수 없습니다.',
-    503: '서비스 점검 중입니다.',
+    400: 'Please check your input.',
+    403: 'Access denied.',
+    404: 'Not found.',
+    409: 'This request has already been processed.',
+    429: 'Too many requests. Please try again later.',
+    500: 'Server error. Please try again later.',
+    502: 'Cannot connect to server.',
+    503: 'Service is under maintenance.',
   };
 
   if (status && statusMessages[status]) {
     return statusMessages[status];
   }
 
-  // 기본 메시지
-  return '요청 처리 중 오류가 발생했습니다.';
+  // Default message
+  return 'An error occurred while processing your request.';
 };
 
-// 응답 인터셉터: 에러 처리 및 토큰 만료 처리
+// Response interceptor: Error handling and token expiration
 apiClient.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
-    // 에러 메시지 추출 (message가 배열일 수도 있음 - NestJS validation)
+    // Extract error message (message can be array - NestJS validation)
     const errorData = error.response?.data as { message?: string | string[] } | undefined;
     let serverMessage = '';
     if (Array.isArray(errorData?.message)) {
@@ -116,20 +116,20 @@ apiClient.interceptors.response.use(
     }
     const userMessage = getUserFriendlyMessage(error.response?.status, serverMessage);
 
-    // 401 에러: 토큰 만료 또는 인증 실패
+    // 401 error: Token expired or auth failure
     if (error.response?.status === 401) {
-      // 토큰 제거 및 로그인 페이지로 리다이렉트
+      // Remove token and redirect to login
       setAuthToken(null);
 
-      // 이벤트 발생 (App에서 처리)
+      // Dispatch event (handled by App)
       window.dispatchEvent(new CustomEvent('auth:logout'));
-      toast.error('로그인이 만료되었습니다. 다시 로그인해주세요.');
+      toast.error('Your session has expired. Please log in again.');
     } else if (!error.response) {
-      // 네트워크 에러
+      // Network error
       console.error('Network error:', error.message);
-      toast.error('서버에 연결할 수 없습니다. 네트워크를 확인해주세요.');
+      toast.error('Cannot connect to server. Please check your network.');
     } else {
-      // 기타 에러 - 사용자 친화적 메시지 표시
+      // Other errors - show user-friendly message
       toast.error(userMessage);
     }
 
@@ -138,7 +138,7 @@ apiClient.interceptors.response.use(
 );
 
 /**
- * API 에러에서 메시지를 추출하는 헬퍼 함수
+ * Helper function to extract message from API error
  */
 export interface ApiErrorResponse {
   response?: {

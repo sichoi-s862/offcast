@@ -87,7 +87,7 @@ export const usePostStore = create<PostState>((set, get) => ({
         isLoadingMore: false,
       }));
     } catch (error: unknown) {
-      const errorMessage = getErrorMessage(error, '게시글을 불러오는데 실패했습니다.');
+      const errorMessage = getErrorMessage(error, 'Failed to load posts.');
       set({ error: errorMessage, isLoading: false, isLoadingMore: false });
     }
   },
@@ -100,7 +100,7 @@ export const usePostStore = create<PostState>((set, get) => ({
       set({ currentPost: post, isLoading: false });
       return post;
     } catch (error: unknown) {
-      const errorMessage = getErrorMessage(error, '게시글을 불러오는데 실패했습니다.');
+      const errorMessage = getErrorMessage(error, 'Failed to load posts.');
       const errorCode = axios.isAxiosError(error) ? error.response?.status || null : null;
       set({ error: errorMessage, errorCode, isLoading: false });
       return null;
@@ -126,7 +126,7 @@ export const usePostStore = create<PostState>((set, get) => ({
         isLoadingMore: false,
       }));
     } catch (error: unknown) {
-      const errorMessage = getErrorMessage(error, '내 게시글을 불러오는데 실패했습니다.');
+      const errorMessage = getErrorMessage(error, 'Failed to load your posts.');
       set({ error: errorMessage, isLoading: false, isLoadingMore: false });
     }
   },
@@ -146,7 +146,7 @@ export const usePostStore = create<PostState>((set, get) => ({
 
       return newPost;
     } catch (error: unknown) {
-      const errorMessage = getErrorMessage(error, '게시글 작성에 실패했습니다.');
+      const errorMessage = getErrorMessage(error, 'Failed to create post.');
       set({ error: errorMessage, isCreating: false });
       throw error;
     }
@@ -168,7 +168,7 @@ export const usePostStore = create<PostState>((set, get) => ({
 
       return updatedPost;
     } catch (error: unknown) {
-      const errorMessage = getErrorMessage(error, '게시글 수정에 실패했습니다.');
+      const errorMessage = getErrorMessage(error, 'Failed to update post.');
       set({ error: errorMessage, isLoading: false });
       throw error;
     }
@@ -189,7 +189,7 @@ export const usePostStore = create<PostState>((set, get) => ({
         isLoading: false,
       }));
     } catch (error: unknown) {
-      const errorMessage = getErrorMessage(error, '게시글 삭제에 실패했습니다.');
+      const errorMessage = getErrorMessage(error, 'Failed to delete post.');
       set({ error: errorMessage, isLoading: false });
       throw error;
     }

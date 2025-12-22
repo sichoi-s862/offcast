@@ -34,7 +34,7 @@ const TermsText = styled.div`
 export const PrivacyPage: React.FC<PrivacyPageProps> = ({ onBack }) => {
   return (
     <Container>
-      <SubPageHeader title="개인정보 처리방침" onBack={onBack} />
+      <SubPageHeader title="Privacy Policy" onBack={onBack} />
       <Content>
         <TermsText>{TERMS}</TermsText>
       </Content>

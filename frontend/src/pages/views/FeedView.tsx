@@ -54,14 +54,14 @@ const FilterTab = styled.button<{ $active: boolean }>`
   border-radius: 9999px;
   font-size: 13px;
   font-weight: 600;
-  border: 1px solid ${props => props.$active ? '#6366f1' : '#374151'};
-  background-color: ${props => props.$active ? '#4f46e5' : 'transparent'};
+  border: 1px solid ${props => props.$active ? '#00D4AA' : '#374151'};
+  background-color: ${props => props.$active ? '#00D4AA' : 'transparent'};
   color: ${props => props.$active ? '#fff' : '#9ca3af'};
   cursor: pointer;
   transition: all 0.2s;
 
   &:hover {
-    background-color: ${props => props.$active ? '#4338ca' : '#1f2937'};
+    background-color: ${props => props.$active ? '#00B894' : '#1f2937'};
   }
 `;
 
@@ -359,18 +359,18 @@ export const FeedView: React.FC<FeedViewProps> = ({
     <Container ref={containerRef}>
       <PullToRefresh $visible={isPullRefreshing}>
         <Loader2 />
-        새로고침 중...
+        Refreshing...
       </PullToRefresh>
 
       {selectedChannel ? (
         <ChannelHeader>
           <ChannelInfo>
             <ChannelName>{selectedChannel.name}</ChannelName>
-            <ChannelBadge>최신순</ChannelBadge>
+            <ChannelBadge>Latest</ChannelBadge>
           </ChannelInfo>
           <ClearButton onClick={onClearChannel}>
             <X />
-            전체보기
+            All Posts
           </ClearButton>
         </ChannelHeader>
       ) : (
@@ -379,13 +379,13 @@ export const FeedView: React.FC<FeedViewProps> = ({
             $active={sortType === 'latest'}
             onClick={() => handleSortChange('latest')}
           >
-            최신순
+            Latest
           </FilterTab>
           <FilterTab
             $active={sortType === 'popular'}
             onClick={() => handleSortChange('popular')}
           >
-            인기순
+            Popular
           </FilterTab>
         </FilterTabs>
       )}
@@ -403,15 +403,15 @@ export const FeedView: React.FC<FeedViewProps> = ({
           <EmptyState>
             <EmptyText>
               {searchQuery
-                ? `"${searchQuery}" 검색 결과가 없습니다.`
-                : '아직 게시글이 없습니다.\n첫 번째 게시글을 작성해보세요!'}
+                ? `No results for "${searchQuery}"`
+                : 'No posts yet.\nBe the first to write!'}
             </EmptyText>
             <RefreshButton
               onClick={handlePullRefresh}
               className={isPullRefreshing ? 'loading' : ''}
             >
               <RefreshCw />
-              새로고침
+              Refresh
             </RefreshButton>
           </EmptyState>
         </ContentWrapper>
@@ -435,7 +435,7 @@ export const FeedView: React.FC<FeedViewProps> = ({
           )}
           {!hasMorePosts && posts.length > 0 && (
             <EmptyState>
-              <EmptyText>모든 게시글을 불러왔습니다.</EmptyText>
+              <EmptyText>You've reached the end.</EmptyText>
             </EmptyState>
           )}
         </ContentWrapper>

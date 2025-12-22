@@ -94,7 +94,7 @@ const LoadingContainer = styled.div`
 const Spinner = styled(Loader2)`
   width: 32px;
   height: 32px;
-  color: #7c3aed;
+  color: #00D4AA;
   animation: spin 1s linear infinite;
 
   @keyframes spin {
@@ -161,7 +161,7 @@ export const MyInfoPage: React.FC<MyInfoPageProps> = ({ currentUser, onBack }) =
   if (isLoading) {
     return (
       <Container>
-        <SubPageHeader title="내 정보" onBack={onBack} />
+        <SubPageHeader title="My Info" onBack={onBack} />
         <LoadingContainer>
           <Spinner />
         </LoadingContainer>
@@ -173,10 +173,10 @@ export const MyInfoPage: React.FC<MyInfoPageProps> = ({ currentUser, onBack }) =
 
   return (
     <Container>
-      <SubPageHeader title="내 정보" onBack={onBack} />
+      <SubPageHeader title="My Info" onBack={onBack} />
       <Content>
         <Field>
-          <FieldLabel>연동된 계정</FieldLabel>
+          <FieldLabel>Linked Account</FieldLabel>
           <PlatformValue>
             <PlatformIcon provider={account?.provider || currentUser.provider} size={24} />
             {account?.profileName || currentUser.nickname}
@@ -186,36 +186,36 @@ export const MyInfoPage: React.FC<MyInfoPageProps> = ({ currentUser, onBack }) =
           </PlatformValue>
         </Field>
         <Field>
-          <FieldLabel>닉네임</FieldLabel>
+          <FieldLabel>Nickname</FieldLabel>
           <FieldValue>{myInfo?.user?.nickname || currentUser.nickname}</FieldValue>
         </Field>
         <Field>
-          <FieldLabel>구독자 수</FieldLabel>
+          <FieldLabel>Subscribers</FieldLabel>
           <FieldValue>
             {account?.subscriberCount?.toLocaleString() || currentUser.subscriberCount}
           </FieldValue>
         </Field>
         {myInfo?.user?.createdAt && (
           <Field>
-            <FieldLabel>가입일</FieldLabel>
+            <FieldLabel>Joined</FieldLabel>
             <FieldValue>{formatDate(myInfo.user.createdAt)}</FieldValue>
           </Field>
         )}
         {myInfo?.stats && (
           <Field>
-            <FieldLabel>활동 통계</FieldLabel>
+            <FieldLabel>Activity Stats</FieldLabel>
             <StatsRow>
               <StatCard>
                 <StatValue>{myInfo.stats.postCount}</StatValue>
-                <StatLabel>작성 글</StatLabel>
+                <StatLabel>Posts</StatLabel>
               </StatCard>
               <StatCard>
                 <StatValue>{myInfo.stats.commentCount}</StatValue>
-                <StatLabel>작성 댓글</StatLabel>
+                <StatLabel>Comments</StatLabel>
               </StatCard>
               <StatCard>
                 <StatValue>{blockedCount}</StatValue>
-                <StatLabel>차단한 사용자</StatLabel>
+                <StatLabel>Blocked</StatLabel>
               </StatCard>
             </StatsRow>
           </Field>

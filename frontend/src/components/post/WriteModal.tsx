@@ -73,7 +73,7 @@ const SubmitButton = styled.button<{ $active: boolean }>`
   border-radius: 9999px;
   font-weight: 700;
   font-size: 14px;
-  background-color: ${props => props.$active ? '#7c3aed' : '#374151'};
+  background-color: ${props => props.$active ? '#00D4AA' : '#374151'};
   color: ${props => props.$active ? 'white' : '#6b7280'};
   cursor: ${props => props.$active ? 'pointer' : 'not-allowed'};
   transition: background-color 0.2s;
@@ -82,7 +82,7 @@ const SubmitButton = styled.button<{ $active: boolean }>`
   justify-content: center;
 
   &:hover {
-    background-color: ${props => props.$active ? '#6d28d9' : '#374151'};
+    background-color: ${props => props.$active ? '#00B894' : '#374151'};
   }
 
   svg {
@@ -254,8 +254,8 @@ const ChannelOption = styled.button<{ $selected?: boolean }>`
   padding: 12px 16px;
   text-align: left;
   font-size: 14px;
-  color: ${props => props.$selected ? '#7c3aed' : '#d1d5db'};
-  background-color: ${props => props.$selected ? 'rgba(124, 58, 237, 0.1)' : 'transparent'};
+  color: ${props => props.$selected ? '#00D4AA' : '#d1d5db'};
+  background-color: ${props => props.$selected ? 'rgba(0, 212, 170, 0.1)' : 'transparent'};
 
   &:hover {
     background-color: #374151;
@@ -357,9 +357,9 @@ export const WriteModal: React.FC<WriteModalProps> = ({
   const handleSubmit = useCallback(async () => {
     if (!isValid || isSubmitting) return;
 
-    // 채널 선택 필수 체크
+    // Channel selection required
     if (!selectedChannelId) {
-      toast.warning('채널을 선택해주세요');
+      toast.warning('Please select a channel');
       setIsChannelDropdownOpen(true);
       return;
     }
@@ -406,21 +406,21 @@ export const WriteModal: React.FC<WriteModalProps> = ({
             <X />
           </CloseButton>
           <TopicSelector onClick={() => setIsChannelDropdownOpen(!isChannelDropdownOpen)}>
-            {selectedChannel?.name || '채널 선택'} <ChevronDown />
+            {selectedChannel?.name || 'Select Channel'} <ChevronDown />
           </TopicSelector>
           <SubmitButton
             $active={!!isValid && !isUploading}
             onClick={handleSubmit}
             disabled={!isValid || isUploading || isSubmitting}
           >
-            {isSubmitting ? <Loader2 /> : '등록'}
+            {isSubmitting ? <Loader2 /> : 'Post'}
           </SubmitButton>
         </Header>
 
         {isChannelDropdownOpen && (
           <ChannelDropdown>
             {accessibleChannels.length === 0 ? (
-              <ChannelOption disabled>접근 가능한 채널이 없습니다</ChannelOption>
+              <ChannelOption disabled>No accessible channels</ChannelOption>
             ) : (
               accessibleChannels.map((channel) => (
                 <ChannelOption
@@ -438,13 +438,13 @@ export const WriteModal: React.FC<WriteModalProps> = ({
         <Content onClick={() => setIsChannelDropdownOpen(false)}>
           <TitleInput
             type="text"
-            placeholder="제목을 입력하세요"
+            placeholder="Enter title"
             value={title}
             onChange={e => setTitle(e.target.value)}
           />
           <ContentTextarea
             ref={contentRef}
-            placeholder="내용을 입력하세요 (#해시태그 사용 가능)"
+            placeholder="Write something... (#hashtags supported)"
             value={content}
             onChange={handleContentChange}
           />
@@ -456,7 +456,7 @@ export const WriteModal: React.FC<WriteModalProps> = ({
                   {uploadingIndex === index && (
                     <UploadingOverlay>
                       <Loader2 />
-                      업로드 중...
+                      Uploading...
                     </UploadingOverlay>
                   )}
                   <RemoveBtn onClick={() => handleRemoveImage(index)}>

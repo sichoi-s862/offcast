@@ -4,7 +4,7 @@ import { ThumbsUp, MessageCircle, Eye, Lock } from 'lucide-react';
 import { AuthorDisplay } from '../common/AuthorDisplay';
 import type { ApiPost, CurrentUser } from '../../types';
 import { useChannelStore, toast } from '../../stores';
-import { formatRelativeTime, formatCount } from '../../utils/format';
+import { formatRelativeTime, formatCount, formatSubscriberCount } from '../../utils/format';
 
 interface PostCardProps {
   post: ApiPost;
@@ -37,7 +37,7 @@ const ChannelBadge = styled.span<{ $hasAccess: boolean }>`
   font-weight: 600;
   border-radius: 4px;
   color: #d1d5db;
-  background-color: ${props => props.$hasAccess ? 'rgba(124, 58, 237, 0.1)' : '#1f2937'};
+  background-color: ${props => props.$hasAccess ? 'rgba(0, 212, 170, 0.1)' : '#1f2937'};
 `;
 
 const TimeText = styled.span`
@@ -145,11 +145,11 @@ const ActionButton = styled.button<{ $active?: boolean }>`
   align-items: center;
   gap: 2px;
   font-size: 14px;
-  color: ${props => props.$active ? '#7c3aed' : '#9ca3af'};
+  color: ${props => props.$active ? '#00D4AA' : '#9ca3af'};
   transition: color 0.2s;
 
   &:hover {
-    color: ${props => props.$active ? '#7c3aed' : '#d1d5db'};
+    color: ${props => props.$active ? '#00D4AA' : '#d1d5db'};
   }
 
   svg {
@@ -165,9 +165,9 @@ const buildAuthorInfo = (post: ApiPost): string => {
     const provider = account?.provider || 'YOUTUBE';
     const nickname = post.author.nickname;
     const subCount = account?.subscriberCount || 0;
-    return `${provider}|${nickname}|${subCount}`;
+    return `${provider}|${nickname}|${formatSubscriberCount(subCount)}`;
   }
-  return 'YOUTUBE|익명|0';
+  return 'YOUTUBE|Anonymous|0';
 };
 
 export const PostCard: React.FC<PostCardProps> = ({
@@ -184,7 +184,7 @@ export const PostCard: React.FC<PostCardProps> = ({
     if (hasAccess) {
       onPostClick(post);
     } else {
-      toast.warning("구독자 수가 부족하여 입장할 수 없습니다.");
+      toast.warning("You don't have access to this channel.");
     }
   };
 
@@ -203,7 +203,7 @@ export const PostCard: React.FC<PostCardProps> = ({
     <CardContainer onClick={handleClick}>
       <CardHeader>
         <ChannelBadge $hasAccess={hasAccess}>
-          {channel?.name || '자유게시판'}
+          {channel?.name || 'General'}
         </ChannelBadge>
         <TimeText>{relativeTime}</TimeText>
       </CardHeader>
@@ -228,7 +228,7 @@ export const PostCard: React.FC<PostCardProps> = ({
         <LockOverlay>
           <LockBadge>
             <Lock />
-            <span>입장 권한이 없습니다</span>
+            <span>No Access</span>
           </LockBadge>
         </LockOverlay>
       )}

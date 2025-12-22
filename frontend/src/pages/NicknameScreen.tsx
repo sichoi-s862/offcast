@@ -150,12 +150,12 @@ const SubmitButton = styled.button<{ $active: boolean }>`
   gap: 8px;
   transition: all 0.2s;
 
-  background-color: ${props => props.$active ? '#7c3aed' : '#1f2937'};
+  background-color: ${props => props.$active ? '#00D4AA' : '#1f2937'};
   color: ${props => props.$active ? 'white' : '#6b7280'};
   cursor: ${props => props.$active ? 'pointer' : 'not-allowed'};
 
   &:hover {
-    background-color: ${props => props.$active ? '#6d28d9' : '#1f2937'};
+    background-color: ${props => props.$active ? '#00B894' : '#1f2937'};
   }
 
   svg {
@@ -175,19 +175,19 @@ export const NicknameScreen: React.FC<NicknameScreenProps> = ({ onComplete, onBa
   const handleCheck = () => {
     if (nickname.length < 2) {
       setStatus('error');
-      setErrorMessage('2글자 이상 입력해주세요.');
+      setErrorMessage('Please enter at least 2 characters.');
       return;
     }
     if (nickname.length > 10) {
       setStatus('error');
-      setErrorMessage('10글자 이하로 입력해주세요.');
+      setErrorMessage('Please enter 10 characters or less.');
       return;
     }
     setStatus('checking');
     setTimeout(() => {
       if (nickname === 'admin' || nickname === 'blind') {
         setStatus('error');
-        setErrorMessage('이미 사용 중인 닉네임입니다.');
+        setErrorMessage('This nickname is already taken.');
       } else {
         setStatus('success');
       }
@@ -211,7 +211,7 @@ export const NicknameScreen: React.FC<NicknameScreenProps> = ({ onComplete, onBa
       setTimeout(() => {
         if (nickname === 'admin' || nickname === 'blind') {
           setStatus('error');
-          setErrorMessage('이미 사용 중인 닉네임입니다.');
+          setErrorMessage('This nickname is already taken.');
         } else {
           onComplete(nickname);
         }
@@ -227,15 +227,15 @@ export const NicknameScreen: React.FC<NicknameScreenProps> = ({ onComplete, onBa
         </BackButton>
       )}
 
-      <Title>닉네임을 설정해주세요</Title>
-      <Subtitle>커뮤니티 활동 시 보여질 이름입니다.</Subtitle>
+      <Title>Set your nickname</Title>
+      <Subtitle>This name will be displayed in the community.</Subtitle>
 
       <InputWrapper>
         <Input
           type="text"
           value={nickname}
           onChange={handleChange}
-          placeholder="한글, 영문, 숫자 2-10자"
+          placeholder="2-10 characters"
           $status={status}
         />
         <InputIcon>
@@ -246,11 +246,11 @@ export const NicknameScreen: React.FC<NicknameScreenProps> = ({ onComplete, onBa
 
       <MessageRow>
         <StatusMessage $error={status === 'error'}>
-          {status === 'error' ? errorMessage : status === 'success' ? '사용 가능한 닉네임입니다.' : ''}
+          {status === 'error' ? errorMessage : status === 'success' ? 'Nickname is available!' : ''}
         </StatusMessage>
         {status !== 'success' && (
           <CheckButton onClick={handleCheck}>
-            중복 확인
+            Check
           </CheckButton>
         )}
       </MessageRow>
@@ -260,7 +260,7 @@ export const NicknameScreen: React.FC<NicknameScreenProps> = ({ onComplete, onBa
         disabled={!isValidNickname || status === 'checking'}
         onClick={handleSubmit}
       >
-        {status === 'checking' ? <SpinnerIcon /> : <>시작하기 <ArrowRight /></>}
+        {status === 'checking' ? <SpinnerIcon /> : <>Get Started <ArrowRight /></>}
       </SubmitButton>
     </Container>
   );

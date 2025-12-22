@@ -128,7 +128,7 @@ export class UserService {
     if (existingAccount) {
       // 다른 사용자에게 이미 연결된 계정인 경우
       if (existingAccount.userId !== userId) {
-        throw new ConflictException('이 계정은 이미 다른 사용자에게 연결되어 있습니다');
+        throw new ConflictException('This account is already linked to another user.');
       }
 
       // 같은 사용자면 정보 갱신

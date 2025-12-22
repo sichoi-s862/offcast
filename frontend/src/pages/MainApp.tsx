@@ -52,7 +52,7 @@ const HeaderLeft = styled.div`
 const LogoWrapper = styled.div`
   width: 28px;
   height: 28px;
-  background-color: #7c3aed;
+  background-color: #00D4AA;
   border-radius: 6px;
   display: flex;
   align-items: center;
@@ -103,7 +103,7 @@ const SearchInput = styled.input`
   outline: none;
 
   &:focus {
-    border-color: #7c3aed;
+    border-color: #00D4AA;
   }
 
   &::placeholder {
@@ -160,9 +160,9 @@ const FABContainer = styled.div`
 const FAB = styled.button`
   width: 56px;
   height: 56px;
-  background-color: #7c3aed;
+  background-color: #00D4AA;
   border-radius: 50%;
-  box-shadow: 0 20px 25px -5px rgba(124, 58, 237, 0.4);
+  box-shadow: 0 20px 25px -5px rgba(0, 212, 170, 0.4);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -171,7 +171,7 @@ const FAB = styled.button`
   transition: all 0.2s;
 
   &:hover {
-    background-color: #6d28d9;
+    background-color: #00B894;
   }
 
   &:active {
@@ -350,7 +350,7 @@ export const MainApp: React.FC<MainAppProps> = ({
             <SearchInput
               ref={searchInputRef}
               type="text"
-              placeholder="검색어 입력"
+              placeholder="Search..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -362,9 +362,9 @@ export const MainApp: React.FC<MainAppProps> = ({
           <>
             <HeaderLeft>
               {activeTab === 'my' ? (
-                <PageTitle>마이페이지</PageTitle>
+                <PageTitle>My Page</PageTitle>
               ) : activeTab === 'topics' ? (
-                <PageTitle>채널</PageTitle>
+                <PageTitle>Channels</PageTitle>
               ) : (
                 <>
                   <LogoWrapper>

@@ -21,8 +21,8 @@ import type { User } from '@prisma/client';
 
 class UpdateNicknameDto {
   @IsString()
-  @IsNotEmpty({ message: '닉네임을 입력해주세요.' })
-  @Length(2, 20, { message: '닉네임은 2자 이상 20자 이하로 입력해주세요.' })
+  @IsNotEmpty({ message: 'Please enter a nickname.' })
+  @Length(2, 20, { message: 'Nickname must be between 2 and 20 characters.' })
   nickname: string;
 }
 
@@ -34,10 +34,10 @@ export class UserController {
   constructor(private userService: UserService) {}
 
   @Get('me')
-  @ApiOperation({ summary: '내 정보 조회' })
+  @ApiOperation({ summary: 'Get my profile' })
   @ApiResponse({
     status: HttpStatus.OK,
-    description: '사용자 정보 및 활동 통계 반환',
+    description: 'Returns user info and activity stats',
   })
   async getMe(@CurrentUser() user: User) {
     const [fullUser, stats] = await Promise.all([
@@ -48,15 +48,15 @@ export class UserController {
   }
 
   @Patch('nickname')
-  @ApiOperation({ summary: '닉네임 변경' })
+  @ApiOperation({ summary: 'Update nickname' })
   @ApiBody({
     schema: {
       type: 'object',
       properties: {
         nickname: {
           type: 'string',
-          description: '새 닉네임',
-          example: '익명의크리에이터',
+          description: 'New nickname',
+          example: 'AnonymousCreator',
         },
       },
       required: ['nickname'],
@@ -64,7 +64,7 @@ export class UserController {
   })
   @ApiResponse({
     status: HttpStatus.OK,
-    description: '닉네임 변경 성공',
+    description: 'Nickname updated successfully',
   })
   async updateNickname(
     @CurrentUser() user: User,
@@ -72,16 +72,16 @@ export class UserController {
   ) {
     const updatedUser = await this.userService.updateNickname(user.id, dto.nickname);
     return {
-      message: '닉네임이 변경되었습니다.',
+      message: 'Nickname has been updated.',
       user: updatedUser,
     };
   }
 
   @Get('accounts')
-  @ApiOperation({ summary: '연결된 소셜 계정 목록 조회' })
+  @ApiOperation({ summary: 'Get linked social accounts' })
   @ApiResponse({
     status: HttpStatus.OK,
-    description: '계정 목록 반환',
+    description: 'Returns list of linked accounts',
   })
   async getAccounts(@CurrentUser() user: User) {
     const accounts = await this.userService.getAccounts(user.id);

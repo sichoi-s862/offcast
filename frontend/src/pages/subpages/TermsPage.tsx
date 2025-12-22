@@ -34,7 +34,7 @@ const TermsText = styled.div`
 export const TermsPage: React.FC<TermsPageProps> = ({ onBack }) => {
   return (
     <Container>
-      <SubPageHeader title="서비스 이용약관" onBack={onBack} />
+      <SubPageHeader title="Terms of Service" onBack={onBack} />
       <Content>
         <TermsText>{TERMS_OF_SERVICE}</TermsText>
       </Content>

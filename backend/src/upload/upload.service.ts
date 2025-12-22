@@ -75,14 +75,14 @@ export class UploadService {
     // MIME 타입 검증
     if (!this.allowedMimeTypes.includes(mimeType)) {
       throw new BadRequestException(
-        `지원하지 않는 이미지 형식입니다. 지원 형식: ${this.allowedMimeTypes.join(', ')}`,
+        `Unsupported image format. Supported formats: ${this.allowedMimeTypes.join(', ')}`,
       );
     }
 
     // 파일 크기 검증
     if (file.length > this.maxFileSize) {
       throw new BadRequestException(
-        `파일 크기가 너무 큽니다. 최대 ${this.maxFileSize / 1024 / 1024}MB까지 업로드 가능합니다.`,
+        `File size too large. Maximum size: ${this.maxFileSize / 1024 / 1024}MB`,
       );
     }
 
@@ -119,7 +119,7 @@ export class UploadService {
     // MIME 타입 검증
     if (!this.allowedMimeTypes.includes(mimeType)) {
       throw new BadRequestException(
-        `지원하지 않는 이미지 형식입니다. 지원 형식: ${this.allowedMimeTypes.join(', ')}`,
+        `Unsupported image format. Supported formats: ${this.allowedMimeTypes.join(', ')}`,
       );
     }
 
@@ -213,7 +213,7 @@ export class UploadService {
   validateFileSize(size: number): void {
     if (size > this.maxFileSize) {
       throw new BadRequestException(
-        `파일 크기가 너무 큽니다. 최대 ${this.maxFileSize / 1024 / 1024}MB까지 업로드 가능합니다.`,
+        `File size too large. Maximum size: ${this.maxFileSize / 1024 / 1024}MB`,
       );
     }
   }
@@ -224,7 +224,7 @@ export class UploadService {
   validateMimeType(mimeType: string): void {
     if (!this.allowedMimeTypes.includes(mimeType)) {
       throw new BadRequestException(
-        `지원하지 않는 이미지 형식입니다. 지원 형식: ${this.allowedMimeTypes.join(', ')}`,
+        `Unsupported image format. Supported formats: ${this.allowedMimeTypes.join(', ')}`,
       );
     }
   }

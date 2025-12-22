@@ -67,7 +67,7 @@ export const useCommentStore = create<CommentState>((set, get) => ({
         isLoadingMore: false,
       }));
     } catch (error: unknown) {
-      const errorMessage = getErrorMessage(error, '댓글을 불러오는데 실패했습니다.');
+      const errorMessage = getErrorMessage(error, 'Failed to load comments.');
       set({ error: errorMessage, isLoading: false, isLoadingMore: false });
     }
   },
@@ -84,7 +84,7 @@ export const useCommentStore = create<CommentState>((set, get) => ({
       set({ isSubmitting: false, replyingToId: null });
       return newComment;
     } catch (error: unknown) {
-      const errorMessage = getErrorMessage(error, '댓글 작성에 실패했습니다.');
+      const errorMessage = getErrorMessage(error, 'Failed to post comment.');
       set({ error: errorMessage, isSubmitting: false });
       throw error;
     }
@@ -116,7 +116,7 @@ export const useCommentStore = create<CommentState>((set, get) => ({
 
       return updatedComment;
     } catch (error: unknown) {
-      const errorMessage = getErrorMessage(error, '댓글 수정에 실패했습니다.');
+      const errorMessage = getErrorMessage(error, 'Failed to update comment.');
       set({ error: errorMessage, isSubmitting: false });
       throw error;
     }
@@ -140,7 +140,7 @@ export const useCommentStore = create<CommentState>((set, get) => ({
         isLoading: false,
       }));
     } catch (error: unknown) {
-      const errorMessage = getErrorMessage(error, '댓글 삭제에 실패했습니다.');
+      const errorMessage = getErrorMessage(error, 'Failed to delete comment.');
       set({ error: errorMessage, isLoading: false });
       throw error;
     }

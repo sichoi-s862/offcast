@@ -157,33 +157,33 @@ export class ChannelController {
   @Public()
   @Post('seed')
   @ApiOperation({
-    summary: '기본 채널 시드 데이터 생성 (개발용)',
-    description: '자유 게시판, 1만/10만/100만 라운지 생성',
+    summary: 'Seed default channels (dev)',
+    description: 'Create default channels including General, tier lounges, and categories',
   })
   @ApiResponse({
     status: HttpStatus.OK,
-    description: '시드 완료',
+    description: 'Seed completed',
   })
   async seed() {
     await this.channelService.seedDefaultChannels();
-    return { message: '기본 채널이 생성되었습니다' };
+    return { message: 'Default channels created' };
   }
 
   /**
-   * 채널 리셋 후 재시드 (개발용)
+   * Reset and re-seed channels (dev)
    */
   @Public()
   @Post('reset')
   @ApiOperation({
-    summary: '채널 리셋 후 재시드 (개발용)',
-    description: '모든 채널 삭제 후 기본 채널 재생성',
+    summary: 'Reset and re-seed channels (dev)',
+    description: 'Delete all channels and recreate default channels',
   })
   @ApiResponse({
     status: HttpStatus.OK,
-    description: '리셋 완료',
+    description: 'Reset completed',
   })
   async reset() {
     await this.channelService.resetAndSeedChannels();
-    return { message: '채널이 리셋되었습니다' };
+    return { message: 'Channels reset successfully' };
   }
 }

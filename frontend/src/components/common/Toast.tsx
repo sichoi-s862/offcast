@@ -14,17 +14,6 @@ const slideIn = keyframes`
   }
 `;
 
-const slideOut = keyframes`
-  from {
-    transform: translateY(0);
-    opacity: 1;
-  }
-  to {
-    transform: translateY(-100%);
-    opacity: 0;
-  }
-`;
-
 const ToastContainer = styled.div`
   position: fixed;
   top: 16px;

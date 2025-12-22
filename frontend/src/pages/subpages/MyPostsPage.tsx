@@ -124,12 +124,12 @@ const LoadMoreButton = styled.button`
   align-items: center;
   justify-content: center;
   gap: 8px;
-  color: #7c3aed;
+  color: #00D4AA;
   font-size: 14px;
   border-top: 1px solid #1f2937;
 
   &:hover {
-    background-color: rgba(124, 58, 237, 0.1);
+    background-color: rgba(0, 212, 170, 0.1);
   }
 
   svg {
@@ -173,10 +173,10 @@ export const MyPostsPage: React.FC<MyPostsPageProps> = ({
   if (isLoading && myPosts.length === 0) {
     return (
       <Container>
-        <SubPageHeader title="내가 쓴 글" onBack={onBack} />
+        <SubPageHeader title="My Posts" onBack={onBack} />
         <LoadingState>
           <Loader2 />
-          <span>불러오는 중...</span>
+          <span>Loading...</span>
         </LoadingState>
       </Container>
     );
@@ -184,7 +184,7 @@ export const MyPostsPage: React.FC<MyPostsPageProps> = ({
 
   return (
     <Container>
-      <SubPageHeader title="내가 쓴 글" onBack={onBack} />
+      <SubPageHeader title="My Posts" onBack={onBack} />
       {myPosts.length > 0 ? (
         <>
           <PostList>
@@ -213,12 +213,12 @@ export const MyPostsPage: React.FC<MyPostsPageProps> = ({
               {isLoadingMore ? (
                 <>
                   <Loader2 />
-                  불러오는 중...
+                  Loading...
                 </>
               ) : (
                 <>
                   <RefreshCw />
-                  더 보기
+                  Load More
                 </>
               )}
             </LoadMoreButton>
@@ -227,7 +227,7 @@ export const MyPostsPage: React.FC<MyPostsPageProps> = ({
       ) : (
         <EmptyState>
           <FileText />
-          <p>작성한 글이 없습니다.</p>
+          <p>No posts yet.</p>
         </EmptyState>
       )}
     </Container>

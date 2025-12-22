@@ -13,7 +13,7 @@ import { MenuBottomSheet } from '../components/modals/MenuBottomSheet';
 import { ReportModal } from '../components/modals/ReportModal';
 import type { ApiComment } from '../types';
 import { useCommentStore, toast } from '../stores';
-import { formatRelativeTime } from '../utils/format';
+import { formatRelativeTime, formatSubscriberCount } from '../utils/format';
 import { blockUser, uploadImage } from '../api';
 
 interface ReplyPageProps {
@@ -300,7 +300,7 @@ const SubmitButton = styled.button<{ $active: boolean }>`
   padding: 8px;
   font-weight: 700;
   font-size: 14px;
-  color: ${props => props.$active ? '#7c3aed' : '#4b5563'};
+  color: ${props => props.$active ? '#00D4AA' : '#4b5563'};
   display: flex;
   align-items: center;
   gap: 4px;
@@ -327,9 +327,9 @@ const buildAuthorInfo = (comment: ApiComment): string => {
     const provider = account?.provider || 'YOUTUBE';
     const nickname = comment.author.nickname;
     const subCount = account?.subscriberCount || 0;
-    return `${provider}|${nickname}|${subCount}`;
+    return `${provider}|${nickname}|${formatSubscriberCount(subCount)}`;
   }
-  return 'YOUTUBE|익명|0';
+  return 'YOUTUBE|Anonymous|0';
 };
 
 export const ReplyPage: React.FC<ReplyPageProps> = ({
@@ -414,13 +414,13 @@ export const ReplyPage: React.FC<ReplyPageProps> = ({
 
   const handleBlock = useCallback(async () => {
     if (!menuTarget?.authorId) {
-      toast.error('차단할 사용자 정보가 없습니다.');
+      toast.error('No user information to block.');
       return;
     }
 
     try {
       await blockUser(menuTarget.authorId);
-      toast.success('사용자를 차단했습니다.');
+      toast.success('User has been blocked.');
     } catch (err: unknown) {
       console.error('Failed to block user:', err);
     }
@@ -428,7 +428,7 @@ export const ReplyPage: React.FC<ReplyPageProps> = ({
 
   const handleReportSubmit = useCallback(() => {
     setReportOpen(false);
-    toast.success('신고가 접수되었습니다.');
+    toast.success('Report has been submitted.');
   }, []);
 
   // 스토어에서 최신 부모 댓글의 replies 가져오기
@@ -441,7 +441,7 @@ export const ReplyPage: React.FC<ReplyPageProps> = ({
         <BackButton onClick={onBack}>
           <ChevronLeft />
         </BackButton>
-        <HeaderTitle>답글</HeaderTitle>
+        <HeaderTitle>Replies</HeaderTitle>
       </Header>
 
       <ScrollContent ref={scrollRef} className="no-scrollbar">
@@ -468,9 +468,9 @@ export const ReplyPage: React.FC<ReplyPageProps> = ({
         </ParentCommentSection>
 
         <RepliesSection>
-          <RepliesHeader>답글 {replies.length}개</RepliesHeader>
+          <RepliesHeader>{replies.length} Replies</RepliesHeader>
           {replies.length === 0 ? (
-            <EmptyReplies>아직 답글이 없습니다. 첫 답글을 남겨보세요!</EmptyReplies>
+            <EmptyReplies>No replies yet. Be the first to reply!</EmptyReplies>
           ) : (
             replies.map((reply) => (
               <ReplyItem key={reply.id}>
@@ -501,7 +501,7 @@ export const ReplyPage: React.FC<ReplyPageProps> = ({
             {isUploadingImage && (
               <UploadingOverlay>
                 <Loader2 />
-                업로드 중...
+                Uploading...
               </UploadingOverlay>
             )}
             <RemovePreviewButton onClick={() => {
@@ -526,7 +526,7 @@ export const ReplyPage: React.FC<ReplyPageProps> = ({
             <Input
               ref={inputRef}
               type="text"
-              placeholder="답글을 입력하세요."
+              placeholder="Write a reply..."
               value={replyText}
               onChange={(e) => setReplyText(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && !isSubmitting && handleSubmit()}
@@ -538,7 +538,7 @@ export const ReplyPage: React.FC<ReplyPageProps> = ({
             disabled={(!replyText.trim() && !uploadedImage) || isSubmitting || isUploadingImage}
             onClick={handleSubmit}
           >
-            {isSubmitting ? <SpinnerIcon /> : '등록'}
+            {isSubmitting ? <SpinnerIcon /> : 'Post'}
           </SubmitButton>
         </InputRow>
       </InputWrapper>

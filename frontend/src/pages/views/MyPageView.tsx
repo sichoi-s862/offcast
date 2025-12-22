@@ -149,7 +149,7 @@ export const MyPageView: React.FC<MyPageViewProps> = ({
             <ProfileName>{currentUser.nickname}</ProfileName>
           </ProfileHeader>
           <ProfileMeta>
-            <SubscriberBadge>구독자 {currentUser.subscriberCount}</SubscriberBadge>
+            <SubscriberBadge>{currentUser.subscriberCount} subscribers</SubscriberBadge>
           </ProfileMeta>
         </ProfileCard>
 
@@ -157,21 +157,21 @@ export const MyPageView: React.FC<MyPageViewProps> = ({
           <MenuItem onClick={() => onNavigate('my_posts')}>
             <MenuItemLeft>
               <MenuIcon><AlignLeft /></MenuIcon>
-              <MenuText>내가 쓴 글</MenuText>
+              <MenuText>My Posts</MenuText>
             </MenuItemLeft>
             <ChevronIcon><ChevronRight /></ChevronIcon>
           </MenuItem>
           <MenuItem onClick={() => onNavigate('my_info')}>
             <MenuItemLeft>
               <MenuIcon><FileText /></MenuIcon>
-              <MenuText>내 정보</MenuText>
+              <MenuText>My Info</MenuText>
             </MenuItemLeft>
             <ChevronIcon><ChevronRight /></ChevronIcon>
           </MenuItem>
           <MenuItem onClick={() => onNavigate('edit_nick')}>
             <MenuItemLeft>
               <MenuIcon><Edit3 /></MenuIcon>
-              <MenuText>닉네임 수정</MenuText>
+              <MenuText>Edit Nickname</MenuText>
             </MenuItemLeft>
             <ChevronIcon><ChevronRight /></ChevronIcon>
           </MenuItem>
@@ -181,28 +181,28 @@ export const MyPageView: React.FC<MyPageViewProps> = ({
           <MenuItem onClick={() => { incrementAppHistory(); navigate('/terms'); }}>
             <MenuItemLeft>
               <MenuIcon><ScrollText /></MenuIcon>
-              <MenuText>서비스 이용약관</MenuText>
+              <MenuText>Terms of Service</MenuText>
             </MenuItemLeft>
             <ChevronIcon><ChevronRight /></ChevronIcon>
           </MenuItem>
           <MenuItem onClick={() => { incrementAppHistory(); navigate('/privacy'); }}>
             <MenuItemLeft>
               <MenuIcon><Shield /></MenuIcon>
-              <MenuText>개인정보 처리방침</MenuText>
+              <MenuText>Privacy Policy</MenuText>
             </MenuItemLeft>
             <ChevronIcon><ChevronRight /></ChevronIcon>
           </MenuItem>
           <MenuItem onClick={() => onNavigate('contact')}>
             <MenuItemLeft>
               <MenuIcon><MessageSquare /></MenuIcon>
-              <MenuText>문의하기</MenuText>
+              <MenuText>Contact Us</MenuText>
             </MenuItemLeft>
             <ChevronIcon><ChevronRight /></ChevronIcon>
           </MenuItem>
           <MenuItem onClick={() => onNavigate('customer_center')}>
             <MenuItemLeft>
               <MenuIcon><HelpCircle /></MenuIcon>
-              <MenuText>고객센터</MenuText>
+              <MenuText>Help Center</MenuText>
             </MenuItemLeft>
             <ChevronIcon><ChevronRight /></ChevronIcon>
           </MenuItem>
@@ -212,7 +212,7 @@ export const MyPageView: React.FC<MyPageViewProps> = ({
           <MenuItem onClick={onLogout}>
             <MenuItemLeft>
               <MenuIcon $danger><LogOut /></MenuIcon>
-              <MenuText $danger>로그아웃</MenuText>
+              <MenuText $danger>Log Out</MenuText>
             </MenuItemLeft>
           </MenuItem>
         </MenuCard>

@@ -38,7 +38,7 @@ export const useChannelStore = create<ChannelState>((set, get) => ({
         isLoading: false,
       });
     } catch (error: unknown) {
-      const errorMessage = getErrorMessage(error, '채널 목록을 불러오는데 실패했습니다.');
+      const errorMessage = getErrorMessage(error, 'Failed to load channels.');
       set({ error: errorMessage, isLoading: false });
     }
   },
@@ -53,7 +53,7 @@ export const useChannelStore = create<ChannelState>((set, get) => ({
         isLoading: false,
       });
     } catch (error: unknown) {
-      const errorMessage = getErrorMessage(error, '접근 가능한 채널 목록을 불러오는데 실패했습니다.');
+      const errorMessage = getErrorMessage(error, 'Failed to load accessible channels.');
       set({ error: errorMessage, isLoading: false });
     }
   },

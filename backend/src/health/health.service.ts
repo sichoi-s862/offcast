@@ -56,7 +56,7 @@ export class HealthService {
       const latency = Date.now() - start;
       dbStatus = { status: 'ok', latency };
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류';
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       dbStatus = { status: 'error', error: errorMessage };
     }
 

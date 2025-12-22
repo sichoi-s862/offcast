@@ -25,48 +25,48 @@ export class SocialController {
   constructor(private socialService: SocialService) {}
 
   @Get('accounts')
-  @ApiOperation({ summary: '연결된 소셜 계정 목록' })
-  @ApiResponse({ status: HttpStatus.OK, description: '연결된 계정 목록 반환' })
+  @ApiOperation({ summary: 'List linked social accounts' })
+  @ApiResponse({ status: HttpStatus.OK, description: 'Returns list of linked accounts' })
   async getLinkedAccounts(@CurrentUser() user: User) {
     return this.socialService.getLinkedAccounts(user.id);
   }
 
   @Get('youtube/stats')
-  @ApiOperation({ summary: 'YouTube 채널 통계' })
-  @ApiResponse({ status: HttpStatus.OK, description: '구독자 수 등 채널 통계 반환' })
+  @ApiOperation({ summary: 'YouTube channel statistics' })
+  @ApiResponse({ status: HttpStatus.OK, description: 'Returns channel stats including subscriber count' })
   async getYouTubeStats(@CurrentUser() user: User) {
     return this.socialService.getYouTubeStats(user.id);
   }
 
   @Get('tiktok/stats')
-  @ApiOperation({ summary: 'TikTok 계정 통계' })
-  @ApiResponse({ status: HttpStatus.OK, description: '팔로워 수 등 계정 통계 반환' })
+  @ApiOperation({ summary: 'TikTok account statistics' })
+  @ApiResponse({ status: HttpStatus.OK, description: 'Returns account stats including follower count' })
   async getTikTokStats(@CurrentUser() user: User) {
     return this.socialService.getTikTokStats(user.id);
   }
 
   @Get('twitch/stats')
-  @ApiOperation({ summary: 'Twitch 계정 통계' })
-  @ApiResponse({ status: HttpStatus.OK, description: '조회 수 등 계정 통계 반환' })
+  @ApiOperation({ summary: 'Twitch account statistics' })
+  @ApiResponse({ status: HttpStatus.OK, description: 'Returns account stats including view count' })
   async getTwitchStats(@CurrentUser() user: User) {
     return this.socialService.getTwitchStats(user.id);
   }
 
   @Get('all')
-  @ApiOperation({ summary: '모든 연결된 플랫폼 통계' })
-  @ApiResponse({ status: HttpStatus.OK, description: '모든 연결된 플랫폼의 통계 반환' })
+  @ApiOperation({ summary: 'All linked platform statistics' })
+  @ApiResponse({ status: HttpStatus.OK, description: 'Returns stats from all linked platforms' })
   async getAllStats(@CurrentUser() user: User) {
     return this.socialService.getAllStats(user.id);
   }
 
   @Get(':provider/stats')
-  @ApiOperation({ summary: '특정 플랫폼 통계 조회' })
+  @ApiOperation({ summary: 'Get statistics by platform' })
   @ApiParam({
     name: 'provider',
     enum: ['youtube', 'tiktok', 'twitch'],
-    description: '플랫폼 이름',
+    description: 'Platform name',
   })
-  @ApiResponse({ status: HttpStatus.OK, description: '플랫폼별 통계 반환' })
+  @ApiResponse({ status: HttpStatus.OK, description: 'Returns platform-specific stats' })
   async getStatsByProvider(
     @CurrentUser() user: User,
     @Param('provider') provider: SocialProvider,

@@ -33,13 +33,13 @@ const Container = styled.div`
 const LogoWrapper = styled.div`
   width: 80px;
   height: 80px;
-  background-color: #7c3aed;
+  background-color: #00D4AA;
   border-radius: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
   margin-bottom: 24px;
-  box-shadow: 0 25px 50px -12px rgba(124, 58, 237, 0.3);
+  box-shadow: 0 25px 50px -12px rgba(0, 212, 170, 0.3);
   color: white;
 `;
 
@@ -69,7 +69,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
         <OffcastLogo size={48} />
       </LogoWrapper>
       <Title>OFFCAST</Title>
-      <Subtitle>크리에이터 익명 커뮤니티</Subtitle>
+      <Subtitle>Anonymous Creator Community</Subtitle>
     </Container>
   );
 };

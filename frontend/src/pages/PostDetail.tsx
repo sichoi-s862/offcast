@@ -19,7 +19,7 @@ import { ReportModal } from '../components/modals/ReportModal';
 import { ReplyPage } from './ReplyPage';
 import type { ApiPost, ApiComment, CurrentUser } from '../types';
 import { usePostStore, useCommentStore, useChannelStore, toast } from '../stores';
-import { formatRelativeTime, formatCount } from '../utils/format';
+import { formatRelativeTime, formatCount, formatSubscriberCount } from '../utils/format';
 import { blockUser, uploadImage } from '../api';
 
 interface PostDetailProps {
@@ -166,7 +166,7 @@ const ActionButton = styled.button<{ $active?: boolean }>`
   border-radius: 4px;
   background-color: #111827;
   border: 1px solid #1f2937;
-  color: ${props => props.$active ? '#7c3aed' : '#9ca3af'};
+  color: ${props => props.$active ? '#00D4AA' : '#9ca3af'};
   font-weight: 700;
   font-size: 14px;
   transition: color 0.2s;
@@ -199,7 +199,7 @@ const CommentsHeader = styled.div`
 
 const LoadMoreButton = styled.button`
   font-size: 12px;
-  color: #7c3aed;
+  color: #00D4AA;
   &:hover {
     text-decoration: underline;
   }
@@ -398,7 +398,7 @@ const SubmitCommentButton = styled.button<{ $active: boolean }>`
   padding: 8px;
   font-weight: 700;
   font-size: 14px;
-  color: ${props => props.$active ? '#7c3aed' : '#4b5563'};
+  color: ${props => props.$active ? '#00D4AA' : '#4b5563'};
   display: flex;
   align-items: center;
   gap: 4px;
@@ -451,14 +451,14 @@ const ModalMessage = styled.p`
 const ModalButton = styled.button`
   width: 100%;
   padding: 12px;
-  background-color: #7c3aed;
+  background-color: #00D4AA;
   border-radius: 8px;
   color: white;
   font-weight: 700;
   font-size: 14px;
 
   &:hover {
-    background-color: #6d28d9;
+    background-color: #00B894;
   }
 `;
 
@@ -471,7 +471,7 @@ const MoreRepliesButton = styled.button`
   align-items: center;
   gap: 4px;
   padding: 12px 16px 12px 52px;
-  color: #7c3aed;
+  color: #00D4AA;
   font-size: 13px;
   font-weight: 500;
   width: 100%;
@@ -483,7 +483,7 @@ const MoreRepliesButton = styled.button`
   }
 
   &:hover {
-    background-color: rgba(124, 58, 237, 0.1);
+    background-color: rgba(0, 212, 170, 0.1);
   }
 `;
 
@@ -494,9 +494,9 @@ const buildAuthorInfo = (comment: ApiComment): string => {
     const provider = account?.provider || 'YOUTUBE';
     const nickname = comment.author.nickname;
     const subCount = account?.subscriberCount || 0;
-    return `${provider}|${nickname}|${subCount}`;
+    return `${provider}|${nickname}|${formatSubscriberCount(subCount)}`;
   }
-  return 'YOUTUBE|익명|0';
+  return 'YOUTUBE|Anonymous|0';
 };
 
 const buildPostAuthorInfo = (post: ApiPost): string => {
@@ -505,9 +505,9 @@ const buildPostAuthorInfo = (post: ApiPost): string => {
     const provider = account?.provider || 'YOUTUBE';
     const nickname = post.author.nickname;
     const subCount = account?.subscriberCount || 0;
-    return `${provider}|${nickname}|${subCount}`;
+    return `${provider}|${nickname}|${formatSubscriberCount(subCount)}`;
   }
-  return 'YOUTUBE|익명|0';
+  return 'YOUTUBE|Anonymous|0';
 };
 
 export const PostDetail: React.FC<PostDetailProps> = ({ postId, onBack, onAccessDenied }) => {
@@ -638,13 +638,13 @@ export const PostDetail: React.FC<PostDetailProps> = ({ postId, onBack, onAccess
 
   const handleBlock = useCallback(async () => {
     if (!menuTarget?.authorId) {
-      toast.error('차단할 사용자 정보가 없습니다.');
+      toast.error('No user information to block.');
       return;
     }
 
     try {
       await blockUser(menuTarget.authorId);
-      toast.success('사용자를 차단했습니다.');
+      toast.success('User has been blocked.');
     } catch (err: unknown) {
       // 전역 인터셉터에서 토스트 처리
       console.error('Failed to block user:', err);
@@ -653,7 +653,7 @@ export const PostDetail: React.FC<PostDetailProps> = ({ postId, onBack, onAccess
 
   const handleReportSubmit = useCallback(() => {
     setReportOpen(false);
-    toast.success('신고가 접수되었습니다.');
+    toast.success('Report has been submitted.');
   }, []);
 
   const handlePostLike = useCallback(() => {
@@ -679,17 +679,17 @@ export const PostDetail: React.FC<PostDetailProps> = ({ postId, onBack, onAccess
       } catch (err) {
         // 사용자가 취소한 경우 무시
         if ((err as Error).name !== 'AbortError') {
-          console.error('공유 실패:', err);
+          console.error('Share failed:', err);
         }
       }
     } else {
       // 클립보드에 복사
       try {
         await navigator.clipboard.writeText(shareText);
-        toast.success('링크가 클립보드에 복사되었습니다.');
+        toast.success('Link copied to clipboard.');
       } catch (err) {
-        console.error('클립보드 복사 실패:', err);
-        toast.error('링크 복사에 실패했습니다.');
+        console.error('Clipboard copy failed:', err);
+        toast.error('Failed to copy link.');
       }
     }
   }, [currentPost]);
@@ -710,7 +710,7 @@ export const PostDetail: React.FC<PostDetailProps> = ({ postId, onBack, onAccess
           <BackButton onClick={onBack}>
             <ChevronLeft />
           </BackButton>
-          <HeaderTitle>게시글</HeaderTitle>
+          <HeaderTitle>Post</HeaderTitle>
           <MenuButton>
             <MoreVertical />
           </MenuButton>
@@ -729,7 +729,7 @@ export const PostDetail: React.FC<PostDetailProps> = ({ postId, onBack, onAccess
         <BackButton onClick={onBack}>
           <ChevronLeft />
         </BackButton>
-        <HeaderTitle>{channel?.name || '게시글'}</HeaderTitle>
+        <HeaderTitle>{channel?.name || 'Post'}</HeaderTitle>
         <MenuButton onClick={() => openMenu('post', currentPost.id, currentPost.authorId)}>
           <MoreVertical />
         </MenuButton>
@@ -761,28 +761,28 @@ export const PostDetail: React.FC<PostDetailProps> = ({ postId, onBack, onAccess
               <MessageCircle /> {formatCount(currentPost.commentCount)}
             </ActionButton>
             <ActionButton onClick={handleShare}>
-              <Share2 /> 공유
+              <Share2 /> Share
             </ActionButton>
           </ActionRow>
         </PostSection>
 
         <CommentsSection>
           <CommentsHeader>
-            <span>댓글 {totalComments}</span>
+            <span>Comments {totalComments}</span>
             {comments.length < totalComments && (
               <LoadMoreButton onClick={handleLoadMoreComments}>
-                더 보기
+                Load More
               </LoadMoreButton>
             )}
           </CommentsHeader>
 
           {commentsLoading && comments.length === 0 ? (
             <CommentItem>
-              <CommentContent style={{ color: '#6b7280' }}>댓글을 불러오는 중...</CommentContent>
+              <CommentContent style={{ color: '#6b7280' }}>Loading comments...</CommentContent>
             </CommentItem>
           ) : comments.length === 0 ? (
             <CommentItem>
-              <CommentContent style={{ color: '#6b7280' }}>아직 댓글이 없습니다. 첫 댓글을 남겨보세요!</CommentContent>
+              <CommentContent style={{ color: '#6b7280' }}>No comments yet. Be the first to comment!</CommentContent>
             </CommentItem>
           ) : (
             comments.map((comment) => (
@@ -807,7 +807,7 @@ export const PostDetail: React.FC<PostDetailProps> = ({ postId, onBack, onAccess
                       {comment.likeCount}
                     </CommentAction>
                     <ReplyButton onClick={() => handleReplyClick(comment)}>
-                      답글 쓰기
+                      Reply
                     </ReplyButton>
                   </CommentMeta>
                 </CommentItem>
@@ -834,7 +834,7 @@ export const PostDetail: React.FC<PostDetailProps> = ({ postId, onBack, onAccess
                     {comment.replies.length > 3 && (
                       <MoreRepliesButton onClick={() => handleReplyClick(comment)}>
                         <MessageSquare />
-                        답글 {comment.replies.length - 3}개 더보기
+                        View {comment.replies.length - 3} more replies
                       </MoreRepliesButton>
                     )}
                   </RepliesContainer>
@@ -852,7 +852,7 @@ export const PostDetail: React.FC<PostDetailProps> = ({ postId, onBack, onAccess
             {isUploadingImage && (
               <UploadingOverlay>
                 <Loader2 />
-                업로드 중...
+                Uploading...
               </UploadingOverlay>
             )}
             <RemovePreviewButton onClick={() => {
@@ -877,7 +877,7 @@ export const PostDetail: React.FC<PostDetailProps> = ({ postId, onBack, onAccess
             <CommentInput
               ref={inputRef}
               type="text"
-              placeholder="댓글을 남겨주세요."
+              placeholder="Leave a comment..."
               value={commentText}
               onChange={(e) => setCommentText(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && !isSubmitting && handleCommentSubmit()}
@@ -889,7 +889,7 @@ export const PostDetail: React.FC<PostDetailProps> = ({ postId, onBack, onAccess
             disabled={(!commentText.trim() && !uploadedCommentImage) || isSubmitting || isUploadingImage}
             onClick={handleCommentSubmit}
           >
-            {isSubmitting ? <Loader2 /> : '등록'}
+            {isSubmitting ? <Loader2 /> : 'Post'}
           </SubmitCommentButton>
         </InputRow>
       </CommentInputWrapper>
@@ -919,13 +919,13 @@ export const PostDetail: React.FC<PostDetailProps> = ({ postId, onBack, onAccess
       {accessDeniedOpen && (
         <ModalOverlay onClick={handleAccessDeniedClose}>
           <ModalContent onClick={(e) => e.stopPropagation()}>
-            <ModalTitle>접근 권한 없음</ModalTitle>
+            <ModalTitle>Access Denied</ModalTitle>
             <ModalMessage>
-              해당 채널에 접근 권한이 없습니다.<br />
-              구독자 수에 따라 접근 가능한 채널이 다릅니다.
+              You don't have access to this channel.<br />
+              Available channels depend on your subscriber count.
             </ModalMessage>
             <ModalButton onClick={handleAccessDeniedClose}>
-              확인
+              OK
             </ModalButton>
           </ModalContent>
         </ModalOverlay>

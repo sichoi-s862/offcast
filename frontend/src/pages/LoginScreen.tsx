@@ -46,7 +46,7 @@ const Content = styled.div`
 const LogoWrapper = styled.div`
   width: 64px;
   height: 64px;
-  background-color: #7c3aed;
+  background-color: #00D4AA;
   border-radius: 12px;
   display: flex;
   align-items: center;
@@ -114,26 +114,26 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
         <LogoWrapper>
           <OffcastLogo size={36} />
         </LogoWrapper>
-        <Title>환영합니다!</Title>
+        <Title>Welcome!</Title>
         <Subtitle>
-          다양한 플랫폼으로 로그인하여<br />
-          솔직한 이야기를 나눠보세요.
+          Log in with your platform<br />
+          and share your honest stories.
         </Subtitle>
 
         <ButtonGroup>
           <LoginButton onClick={() => onLogin('youtube')}>
             <PlatformIconImg src={youtubeIcon} alt="YouTube" />
-            <ButtonText>YouTube로 계속하기</ButtonText>
+            <ButtonText>Continue with YouTube</ButtonText>
           </LoginButton>
 
           <LoginButton onClick={() => onLogin('twitter')}>
             <PlatformIconImg src={chzzkIcon} alt="Twitter" />
-            <ButtonText>Twitter로 계속하기</ButtonText>
+            <ButtonText>Continue with Twitter</ButtonText>
           </LoginButton>
 
           <LoginButton onClick={() => onLogin('tiktok')}>
             <PlatformIconImg src={tiktokIcon} alt="TikTok" />
-            <ButtonText>TikTok으로 계속하기</ButtonText>
+            <ButtonText>Continue with TikTok</ButtonText>
           </LoginButton>
         </ButtonGroup>
       </Content>

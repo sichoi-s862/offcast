@@ -93,7 +93,7 @@ const RadioCircle = styled.div<{ $selected: boolean }>`
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  border: 1px solid ${props => props.$selected ? '#7c3aed' : '#4b5563'};
+  border: 1px solid ${props => props.$selected ? '#00D4AA' : '#4b5563'};
   display: flex;
   align-items: center;
   justify-content: center;
@@ -103,7 +103,7 @@ const RadioDot = styled.div`
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background-color: #7c3aed;
+  background-color: #00D4AA;
 `;
 
 const RadioInput = styled.input`
@@ -135,12 +135,12 @@ const Button = styled.button<{ $primary?: boolean; $disabled?: boolean }>`
   gap: 8px;
 
   ${props => props.$primary ? `
-    background-color: ${props.$disabled ? '#374151' : '#7c3aed'};
+    background-color: ${props.$disabled ? '#374151' : '#00D4AA'};
     color: ${props.$disabled ? '#6b7280' : 'white'};
     cursor: ${props.$disabled ? 'not-allowed' : 'pointer'};
 
     &:hover {
-      background-color: ${props.$disabled ? '#374151' : '#6d28d9'};
+      background-color: ${props.$disabled ? '#374151' : '#00B894'};
     }
   ` : `
     background-color: #1f2937;
@@ -197,7 +197,7 @@ export const ReportModal: React.FC<ReportModalProps> = ({
       setSelectedReason(null);
       onSubmit();
     } catch (err: unknown) {
-      const errorMessage = getErrorMessage(err, '신고 접수에 실패했습니다.');
+      const errorMessage = getErrorMessage(err, 'Failed to submit report.');
       setError(errorMessage);
     } finally {
       setIsSubmitting(false);
@@ -217,8 +217,8 @@ export const ReportModal: React.FC<ReportModalProps> = ({
       <Backdrop onClick={handleClose} />
       <ModalContainer>
         <ModalHeader>
-          <ModalTitle>신고하기</ModalTitle>
-          <ModalSubtitle>신고 사유를 선택해주세요.</ModalSubtitle>
+          <ModalTitle>Report</ModalTitle>
+          <ModalSubtitle>Please select a reason for reporting.</ModalSubtitle>
         </ModalHeader>
         <ModalBody>
           {REPORT_REASONS.map((reason, idx) => (
@@ -243,14 +243,14 @@ export const ReportModal: React.FC<ReportModalProps> = ({
           )}
         </ModalBody>
         <ModalFooter>
-          <Button onClick={handleClose} disabled={isSubmitting}>취소</Button>
+          <Button onClick={handleClose} disabled={isSubmitting}>Cancel</Button>
           <Button
             $primary
             $disabled={!selectedReason || isSubmitting}
             onClick={handleSubmit}
             disabled={!selectedReason || isSubmitting}
           >
-            {isSubmitting ? <><Spinner /> 처리중...</> : '신고'}
+            {isSubmitting ? <><Spinner /> Submitting...</> : 'Report'}
           </Button>
         </ModalFooter>
       </ModalContainer>

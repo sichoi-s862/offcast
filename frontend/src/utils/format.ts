@@ -5,15 +5,17 @@ export const formatSubscriberCount = (count: number): string => {
     1000000, 1500000
   ];
 
-  let display = "100명 미만";
+  let display = "< 100";
 
   for (let i = thresholds.length - 1; i >= 0; i--) {
     if (count >= thresholds[i]) {
       const val = thresholds[i];
-      if (val >= 10000) {
-        display = `${val / 10000}만명+`;
+      if (val >= 1000000) {
+        display = `${val / 1000000}M+`;
+      } else if (val >= 1000) {
+        display = `${val / 1000}K+`;
       } else {
-        display = `${val}명+`;
+        display = `${val}+`;
       }
       break;
     }
@@ -21,7 +23,7 @@ export const formatSubscriberCount = (count: number): string => {
   return display;
 };
 
-// 상대적 시간 포맷 (예: "방금 전", "5분 전", "2시간 전", "3일 전")
+// Relative time format (e.g., "just now", "5m ago", "2h ago", "3d ago")
 export const formatRelativeTime = (dateString: string): string => {
   const date = new Date(dateString);
   const now = new Date();
@@ -35,41 +37,45 @@ export const formatRelativeTime = (dateString: string): string => {
   const diffYear = Math.floor(diffDay / 365);
 
   if (diffSec < 60) {
-    return '방금 전';
+    return 'just now';
   } else if (diffMin < 60) {
-    return `${diffMin}분 전`;
+    return `${diffMin}m ago`;
   } else if (diffHour < 24) {
-    return `${diffHour}시간 전`;
+    return `${diffHour}h ago`;
   } else if (diffDay < 7) {
-    return `${diffDay}일 전`;
+    return `${diffDay}d ago`;
   } else if (diffWeek < 4) {
-    return `${diffWeek}주 전`;
+    return `${diffWeek}w ago`;
   } else if (diffMonth < 12) {
-    return `${diffMonth}개월 전`;
+    return `${diffMonth}mo ago`;
   } else {
-    return `${diffYear}년 전`;
+    return `${diffYear}y ago`;
   }
 };
 
-// 숫자 포맷 (예: 1200 -> "1.2k", 15000 -> "1.5만")
+// Number format (e.g., 1200 -> "1.2K", 15000 -> "15K")
 export const formatCount = (count: number): string => {
   if (count < 1000) {
     return count.toString();
-  } else if (count < 10000) {
-    return `${(count / 1000).toFixed(1)}k`;
-  } else if (count < 100000000) {
-    const wan = count / 10000;
-    if (wan >= 10) {
-      return `${Math.floor(wan)}만`;
+  } else if (count < 1000000) {
+    const k = count / 1000;
+    if (k >= 10) {
+      return `${Math.floor(k)}K`;
     }
-    return `${wan.toFixed(1)}만`;
+    return `${k.toFixed(1)}K`;
+  } else if (count < 1000000000) {
+    const m = count / 1000000;
+    if (m >= 10) {
+      return `${Math.floor(m)}M`;
+    }
+    return `${m.toFixed(1)}M`;
   } else {
-    const eok = count / 100000000;
-    return `${eok.toFixed(1)}억`;
+    const b = count / 1000000000;
+    return `${b.toFixed(1)}B`;
   }
 };
 
-// 날짜 포맷 (예: "2024.01.15")
+// Date format (e.g., "2024.01.15")
 export const formatDate = (dateString: string): string => {
   const date = new Date(dateString);
   const year = date.getFullYear();
@@ -78,7 +84,7 @@ export const formatDate = (dateString: string): string => {
   return `${year}.${month}.${day}`;
 };
 
-// 날짜 및 시간 포맷 (예: "2024.01.15 14:30")
+// Date and time format (e.g., "2024.01.15 14:30")
 export const formatDateTime = (dateString: string): string => {
   const date = new Date(dateString);
   const year = date.getFullYear();
