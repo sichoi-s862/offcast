@@ -156,16 +156,16 @@ export class PostService {
     };
   }
 
-  // 인기순 캐시 (5분)
-  private popularCache: {
-    data: PostListResponse | null;
-    timestamp: number;
-  } = { data: null, timestamp: 0 };
+  // 인기순 캐시 (페이지별, 5분)
+  private popularCache: Map<string, { data: PostListResponse; timestamp: number }> = new Map();
   private readonly POPULAR_CACHE_TTL = 5 * 60 * 1000; // 5분
+  private readonly POPULAR_LOOKBACK_DAYS = 7; // 최근 7일 게시글만 대상
 
   /**
-   * 인기순 조회 (시간 감쇠 적용, 5분 캐싱)
-   * 점수 = 좋아요 / (경과시간(시간) + 2)^1.5
+   * 인기순 조회 (최적화 버전)
+   * - 최근 7일 게시글만 대상으로 함
+   * - 좋아요 수 기준으로 정렬 (시간 감쇠는 캐시 갱신 시에만 적용)
+   * - 페이지별 캐싱
    */
   private async findAllPopular(
     where: Prisma.PostWhereInput,
@@ -174,20 +174,31 @@ export class PostService {
     skip: number,
   ): Promise<PostListResponse> {
     const now = Date.now();
+    const cacheKey = `${JSON.stringify(where)}_${page}_${limit}`;
 
-    // 캐시 확인 (첫 페이지만 캐싱)
-    if (
-      page === 1 &&
-      this.popularCache.data &&
-      now - this.popularCache.timestamp < this.POPULAR_CACHE_TTL
-    ) {
-      return this.popularCache.data;
+    // 캐시 확인
+    const cached = this.popularCache.get(cacheKey);
+    if (cached && now - cached.timestamp < this.POPULAR_CACHE_TTL) {
+      return cached.data;
     }
 
-    // 전체 데이터 조회 (점수 계산을 위해)
-    const [allPosts, total] = await Promise.all([
+    // 최근 7일 게시글만 조회 (성능 최적화)
+    const lookbackDate = new Date(now - this.POPULAR_LOOKBACK_DAYS * 24 * 60 * 60 * 1000);
+    const optimizedWhere: Prisma.PostWhereInput = {
+      ...where,
+      createdAt: { gte: lookbackDate },
+    };
+
+    // 좋아요 수 기준 정렬로 조회 (DB에서 처리)
+    const [posts, total] = await Promise.all([
       this.prisma.post.findMany({
-        where,
+        where: optimizedWhere,
+        orderBy: [
+          { likeCount: 'desc' },
+          { createdAt: 'desc' }, // 좋아요 같으면 최신순
+        ],
+        skip,
+        take: limit,
         include: {
           author: {
             select: {
@@ -214,27 +225,8 @@ export class PostService {
           },
         },
       }),
-      this.prisma.post.count({ where }),
+      this.prisma.post.count({ where: optimizedWhere }),
     ]);
-
-    // 시간 감쇠 점수 계산 및 정렬
-    const postsWithScore = allPosts.map((post) => {
-      const hoursAgo = (now - new Date(post.createdAt).getTime()) / (1000 * 60 * 60);
-      // 점수 = 좋아요 / (경과시간 + 2)^1.2
-      // +2는 최신 글이 0으로 나눠지는 것 방지 및 초기 부스트
-      // ^1.2는 완만한 감쇠 (초기 커뮤니티에 적합)
-      const score = post.likeCount / Math.pow(hoursAgo + 2, 1.2);
-      return { ...post, _popularityScore: score };
-    });
-
-    // 점수순 정렬
-    postsWithScore.sort((a, b) => b._popularityScore - a._popularityScore);
-
-    // 페이지네이션 적용
-    const paginatedPosts = postsWithScore.slice(skip, skip + limit);
-
-    // _popularityScore 필드 제거
-    const posts = paginatedPosts.map(({ _popularityScore, ...post }) => post);
 
     const result = {
       posts,
@@ -244,10 +236,12 @@ export class PostService {
       totalPages: Math.ceil(total / limit),
     };
 
-    // 첫 페이지는 캐싱
-    if (page === 1) {
-      this.popularCache = { data: result, timestamp: now };
+    // 캐싱 (최대 100개 캐시 유지)
+    if (this.popularCache.size > 100) {
+      const firstKey = this.popularCache.keys().next().value;
+      if (firstKey) this.popularCache.delete(firstKey);
     }
+    this.popularCache.set(cacheKey, { data: result, timestamp: now });
 
     return result;
   }
@@ -380,9 +374,9 @@ export class PostService {
         });
       }
 
-      // 3. 해시태그 처리
+      // 3. 해시태그 처리 (병렬화)
       if (dto.hashtags && dto.hashtags.length > 0) {
-        for (const tagName of dto.hashtags) {
+        const hashtagPromises = dto.hashtags.map(async (tagName) => {
           const normalizedName = tagName.replace(/^#/, '').toLowerCase();
 
           // 해시태그 생성 또는 조회
@@ -392,14 +386,18 @@ export class PostService {
             update: { usageCount: { increment: 1 } },
           });
 
-          // 게시글-해시태그 연결
-          await tx.postHashtag.create({
-            data: {
-              postId: post.id,
-              hashtagId: hashtag.id,
-            },
-          });
-        }
+          return hashtag;
+        });
+
+        const hashtags = await Promise.all(hashtagPromises);
+
+        // 게시글-해시태그 연결 (bulk insert)
+        await tx.postHashtag.createMany({
+          data: hashtags.map((hashtag) => ({
+            postId: post.id,
+            hashtagId: hashtag.id,
+          })),
+        });
       }
 
       return post;

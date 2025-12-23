@@ -25,6 +25,7 @@ interface PostState {
   isCreating: boolean;
   error: string | null;
   errorCode: number | null; // HTTP 에러 코드
+  _lastFetchKey: string; // 중복 요청 방지용 키
 
   // 필터 상태
   filters: PostQueryParams;
@@ -63,17 +64,27 @@ export const usePostStore = create<PostState>((set, get) => ({
   isCreating: false,
   error: null,
   errorCode: null,
+  _lastFetchKey: '',
   filters: {},
 
-  // 게시글 목록 조회
+  // 게시글 목록 조회 - 중복 요청 방지
   fetchPosts: async (params?: PostQueryParams, append = false) => {
     const currentFilters = get().filters;
     const mergedParams = { ...currentFilters, ...params, limit: params?.limit || DEFAULT_LIMIT };
 
+    // 요청 키 생성 (같은 파라미터면 스킵)
+    const fetchKey = JSON.stringify(mergedParams);
+    const state = get();
+
+    // append가 아닌 경우에만 중복 체크 (무한 스크롤은 허용)
+    if (!append && state._lastFetchKey === fetchKey && state.isLoading) {
+      return;
+    }
+
     if (append) {
       set({ isLoadingMore: true });
     } else {
-      set({ isLoading: true, error: null });
+      set({ isLoading: true, error: null, _lastFetchKey: fetchKey });
     }
 
     try {

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo, useCallback, useMemo } from 'react';
 import styled from 'styled-components';
 import { ThumbsUp, MessageCircle, Eye, Lock } from 'lucide-react';
 import { AuthorDisplay } from '../common/AuthorDisplay';
@@ -42,7 +42,7 @@ const ChannelBadge = styled.span<{ $hasAccess: boolean }>`
 
 const TimeText = styled.span`
   font-size: 12px;
-  color: #6b7280;
+  color: #9ca3af;
 `;
 
 const AuthorWrapper = styled.div<{ $blur: boolean }>`
@@ -143,18 +143,28 @@ const ActionsRow = styled.div<{ $blur: boolean }>`
 const ActionButton = styled.button<{ $active?: boolean }>`
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: 4px;
   font-size: 14px;
   color: ${props => props.$active ? '#00D4AA' : '#9ca3af'};
   transition: color 0.2s;
+  padding: 8px;
+  margin: -8px;
+  border-radius: 8px;
+  min-height: 44px;
+  min-width: 44px;
 
   &:hover {
     color: ${props => props.$active ? '#00D4AA' : '#d1d5db'};
+    background-color: rgba(255, 255, 255, 0.05);
+  }
+
+  &:active {
+    background-color: rgba(255, 255, 255, 0.1);
   }
 
   svg {
-    width: 18px;
-    height: 18px;
+    width: 20px;
+    height: 20px;
   }
 `;
 
@@ -170,7 +180,21 @@ const buildAuthorInfo = (post: ApiPost): string => {
   return 'YOUTUBE|Anonymous|0';
 };
 
-export const PostCard: React.FC<PostCardProps> = ({
+// Check if user has access to channel (subscriber count + provider)
+const checkChannelAccess = (channel: ReturnType<typeof useChannelStore.getState>['channels'][0] | undefined, currentUser: CurrentUser): boolean => {
+  if (!channel) return true;
+
+  // Check subscriber count
+  const hasSubAccess = currentUser.rawSubCount >= channel.minSubscribers;
+
+  // Check provider restriction
+  const hasProviderAccess = !channel.providerOnly ||
+    (currentUser.providers?.includes(channel.providerOnly) ?? false);
+
+  return hasSubAccess && hasProviderAccess;
+};
+
+const PostCardComponent: React.FC<PostCardProps> = ({
   post,
   currentUser,
   onPostClick,
@@ -178,26 +202,29 @@ export const PostCard: React.FC<PostCardProps> = ({
 }) => {
   const { getChannelById } = useChannelStore();
   const channel = getChannelById(post.channelId);
-  const hasAccess = !channel || currentUser.rawSubCount >= channel.minSubscribers;
+  const hasAccess = useMemo(
+    () => checkChannelAccess(channel, currentUser),
+    [channel, currentUser]
+  );
 
-  const handleClick = () => {
+  const handleClick = useCallback(() => {
     if (hasAccess) {
       onPostClick(post);
     } else {
       toast.warning("You don't have access to this channel.");
     }
-  };
+  }, [hasAccess, onPostClick, post]);
 
-  const handleLikeClick = (e: React.MouseEvent) => {
+  const handleLikeClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     if (hasAccess) {
       onLike();
     }
-  };
+  }, [hasAccess, onLike]);
 
-  const authorInfo = buildAuthorInfo(post);
+  const authorInfo = useMemo(() => buildAuthorInfo(post), [post]);
   const thumbnail = post.images?.[0]?.url || null;
-  const relativeTime = formatRelativeTime(post.createdAt);
+  const relativeTime = useMemo(() => formatRelativeTime(post.createdAt), [post.createdAt]);
 
   return (
     <CardContainer onClick={handleClick}>
@@ -219,7 +246,7 @@ export const PostCard: React.FC<PostCardProps> = ({
         </TextContent>
         {thumbnail && (
           <Thumbnail>
-            <img src={thumbnail} alt="thumbnail" />
+            <img src={thumbnail} alt="thumbnail" loading="lazy" />
           </Thumbnail>
         )}
       </ContentWrapper>
@@ -234,15 +261,15 @@ export const PostCard: React.FC<PostCardProps> = ({
       )}
 
       <ActionsRow $blur={!hasAccess}>
-        <ActionButton $active={post.isLiked} onClick={handleLikeClick}>
+        <ActionButton $active={post.isLiked} onClick={handleLikeClick} aria-label={`Like, ${post.likeCount} likes`}>
           <ThumbsUp fill={post.isLiked ? "currentColor" : "none"} />
           {formatCount(post.likeCount)}
         </ActionButton>
-        <ActionButton>
+        <ActionButton aria-label={`Comments, ${post.commentCount} comments`}>
           <MessageCircle />
           {formatCount(post.commentCount)}
         </ActionButton>
-        <ActionButton>
+        <ActionButton aria-label={`Views, ${post.viewCount} views`}>
           <Eye />
           {formatCount(post.viewCount)}
         </ActionButton>
@@ -250,5 +277,7 @@ export const PostCard: React.FC<PostCardProps> = ({
     </CardContainer>
   );
 };
+
+export const PostCard = memo(PostCardComponent);
 
 export default PostCard;

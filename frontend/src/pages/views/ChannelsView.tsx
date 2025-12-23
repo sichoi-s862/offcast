@@ -73,7 +73,7 @@ const LockOverlay = styled.div`
 
 const LockText = styled.span`
   font-size: 10px;
-  color: #6b7280;
+  color: #9ca3af;
 `;
 
 const ChannelIcon = styled.div<{ $locked: boolean }>`
@@ -92,7 +92,7 @@ const ChannelName = styled.span<{ $locked: boolean }>`
 
 const PostCount = styled.span`
   font-size: 11px;
-  color: #6b7280;
+  color: #9ca3af;
 `;
 
 const ErrorContainer = styled.div`
@@ -216,8 +216,13 @@ export const ChannelsView: React.FC<ChannelsViewProps> = ({ currentUser, onChann
         // min/max 범위 체크
         const belowMin = currentUser.rawSubCount < channel.minSubscribers;
         const aboveMax = channel.maxSubscribers !== null && currentUser.rawSubCount > channel.maxSubscribers;
-        const isLocked = belowMin || aboveMax;
-        const rangeText = formatSubsRange(channel.minSubscribers, channel.maxSubscribers);
+        // provider 전용 채널 체크
+        const providerLocked = !!channel.providerOnly &&
+          !(currentUser.providers?.includes(channel.providerOnly) ?? false);
+        const isLocked = belowMin || aboveMax || providerLocked;
+        const rangeText = providerLocked
+          ? `${channel.providerOnly} Only`
+          : formatSubsRange(channel.minSubscribers, channel.maxSubscribers);
 
         return (
           <ChannelCard

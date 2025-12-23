@@ -58,9 +58,12 @@ export class ChannelController {
     description: '접근 가능한 채널 목록 반환',
   })
   async getAccessibleChannels(@CurrentUser() user: User) {
-    // 사용자의 최대 구독자 수 조회
-    const subscriberCount = await this.userService.getMaxSubscriberCount(user.id);
-    return this.channelService.getAccessibleChannels(subscriberCount);
+    // 사용자의 최대 구독자 수와 플랫폼 조회
+    const [subscriberCount, userProviders] = await Promise.all([
+      this.userService.getMaxSubscriberCount(user.id),
+      this.userService.getUserProviders(user.id),
+    ]);
+    return this.channelService.getAccessibleChannels(subscriberCount, userProviders);
   }
 
   /**

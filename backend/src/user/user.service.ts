@@ -207,6 +207,19 @@ export class UserService {
   }
 
   /**
+   * 사용자의 연결된 플랫폼 목록 조회
+   * - 채널 접근 권한 확인에 사용
+   */
+  async getUserProviders(userId: string): Promise<string[]> {
+    const accounts = await this.prisma.account.findMany({
+      where: { userId },
+      select: { provider: true },
+    });
+
+    return accounts.map((account) => account.provider.toUpperCase());
+  }
+
+  /**
    * 닉네임 업데이트
    */
   async updateNickname(userId: string, nickname: string): Promise<User> {
@@ -243,5 +256,63 @@ export class UserService {
         deletedAt: new Date(),
       },
     });
+  }
+
+  /**
+   * 약관 동의 저장
+   */
+  async saveAgreements(
+    userId: string,
+    agreements: { type: 'TERMS_OF_SERVICE' | 'PRIVACY_POLICY' | 'MARKETING'; version: string }[],
+  ) {
+    const upsertPromises = agreements.map((agreement) =>
+      this.prisma.userAgreement.upsert({
+        where: {
+          userId_agreementType: {
+            userId,
+            agreementType: agreement.type,
+          },
+        },
+        create: {
+          userId,
+          agreementType: agreement.type,
+          version: agreement.version,
+        },
+        update: {
+          version: agreement.version,
+          agreedAt: new Date(),
+        },
+      }),
+    );
+
+    return Promise.all(upsertPromises);
+  }
+
+  /**
+   * 사용자 약관 동의 상태 조회
+   */
+  async getAgreements(userId: string) {
+    return this.prisma.userAgreement.findMany({
+      where: { userId },
+      select: {
+        agreementType: true,
+        version: true,
+        agreedAt: true,
+      },
+    });
+  }
+
+  /**
+   * 필수 약관 동의 여부 확인
+   */
+  async hasRequiredAgreements(userId: string): Promise<boolean> {
+    const agreements = await this.prisma.userAgreement.findMany({
+      where: {
+        userId,
+        agreementType: { in: ['TERMS_OF_SERVICE', 'PRIVACY_POLICY'] },
+      },
+    });
+
+    return agreements.length >= 2;
   }
 }

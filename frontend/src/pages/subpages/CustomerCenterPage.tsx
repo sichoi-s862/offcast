@@ -64,7 +64,7 @@ const LoadingContainer = styled.div`
 `;
 
 const Spinner = styled(Loader2)`
-  color: #6b7280;
+  color: #9ca3af;
   animation: spin 1s linear infinite;
 
   @keyframes spin {
@@ -75,7 +75,7 @@ const Spinner = styled(Loader2)`
 
 const EmptyMessage = styled.p`
   text-align: center;
-  color: #6b7280;
+  color: #9ca3af;
   padding: 48px 0;
   font-size: 14px;
 `;

@@ -1,7 +1,9 @@
 import {
   Controller,
   Get,
+  Post,
   Patch,
+  Delete,
   Body,
   UseGuards,
   HttpStatus,
@@ -13,7 +15,8 @@ import {
   ApiResponse,
   ApiBody,
 } from '@nestjs/swagger';
-import { IsString, IsNotEmpty, Length } from 'class-validator';
+import { IsString, IsNotEmpty, Length, IsArray, ValidateNested, IsEnum } from 'class-validator';
+import { Type } from 'class-transformer';
 import { UserService } from './user.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
@@ -24,6 +27,28 @@ class UpdateNicknameDto {
   @IsNotEmpty({ message: 'Please enter a nickname.' })
   @Length(2, 20, { message: 'Nickname must be between 2 and 20 characters.' })
   nickname: string;
+}
+
+enum AgreementTypeDto {
+  TERMS_OF_SERVICE = 'TERMS_OF_SERVICE',
+  PRIVACY_POLICY = 'PRIVACY_POLICY',
+  MARKETING = 'MARKETING',
+}
+
+class AgreementItemDto {
+  @IsEnum(AgreementTypeDto)
+  type: AgreementTypeDto;
+
+  @IsString()
+  @IsNotEmpty()
+  version: string;
+}
+
+class SaveAgreementsDto {
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => AgreementItemDto)
+  agreements: AgreementItemDto[];
 }
 
 @ApiTags('Users')
@@ -86,5 +111,68 @@ export class UserController {
   async getAccounts(@CurrentUser() user: User) {
     const accounts = await this.userService.getAccounts(user.id);
     return { accounts };
+  }
+
+  @Delete('withdraw')
+  @ApiOperation({
+    summary: 'Withdraw from service',
+    description: 'Permanently delete your account. This action cannot be undone.',
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Account successfully withdrawn',
+  })
+  async withdraw(@CurrentUser() user: User) {
+    await this.userService.withdraw(user.id);
+    return { message: 'Your account has been successfully withdrawn.' };
+  }
+
+  @Post('agreements')
+  @ApiOperation({
+    summary: 'Save agreement consents',
+    description: 'Save user agreement consents for terms, privacy policy, and marketing.',
+  })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        agreements: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              type: {
+                type: 'string',
+                enum: ['TERMS_OF_SERVICE', 'PRIVACY_POLICY', 'MARKETING'],
+              },
+              version: { type: 'string', example: '1.0.0' },
+            },
+          },
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Agreements saved successfully',
+  })
+  async saveAgreements(
+    @CurrentUser() user: User,
+    @Body() dto: SaveAgreementsDto,
+  ) {
+    await this.userService.saveAgreements(user.id, dto.agreements);
+    return { message: 'Agreements have been saved.' };
+  }
+
+  @Get('agreements')
+  @ApiOperation({ summary: 'Get my agreement consents' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Returns list of user agreements',
+  })
+  async getAgreements(@CurrentUser() user: User) {
+    const agreements = await this.userService.getAgreements(user.id);
+    const hasRequired = await this.userService.hasRequiredAgreements(user.id);
+    return { agreements, hasRequiredAgreements: hasRequired };
   }
 }

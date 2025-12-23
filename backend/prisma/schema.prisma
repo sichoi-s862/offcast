@@ -112,6 +112,7 @@ model Account {
   @@unique([provider, providerAccountId])
   @@index([userId])
   @@index([provider])
+  @@index([subscriberCount])
 }
 
 // 지원 플랫폼
@@ -135,6 +136,7 @@ model Channel {
   // 접근 조건
   minSubscribers Int   // 최소 구독자 수
   maxSubscribers Int?  // 최대 구독자 수 (null이면 제한 없음)
+  providerOnly   String? // 플랫폼 전용 채널 ('YOUTUBE', 'TIKTOK', 'TWITCH')
 
   // 채널 설정
   isActive    Boolean  @default(true)
@@ -151,6 +153,7 @@ model Channel {
 
   @@index([isActive, sortOrder])
   @@index([minSubscribers])
+  @@index([providerOnly])
 }
 
 // 채널 접근 권한 (사용자별 캐싱)
@@ -171,6 +174,7 @@ model ChannelAccess {
   @@index([userId])
   @@index([channelId])
   @@index([expiresAt])
+  @@index([userId, expiresAt])
 }
 
 // ============================================
@@ -405,6 +409,8 @@ model Report {
   @@index([postId])
   @@index([commentId])
   @@index([createdAt(sort: Desc)])
+  @@index([status, createdAt(sort: Desc)])
+  @@index([reporterId, createdAt(sort: Desc)])
 }
 
 // 신고 대상 유형
@@ -493,6 +499,8 @@ model Inquiry {
   @@index([status])
   @@index([category])
   @@index([createdAt(sort: Desc)])
+  @@index([status, createdAt(sort: Desc)])
+  @@index([userId, createdAt(sort: Desc)])
 }
 
 // 문의 카테고리

@@ -65,26 +65,33 @@ export class PostController {
     @CurrentUser() user: User,
     @Query() query: GetPostsQueryDto,
   ) {
+    const subscriberCount = await this.userService.getMaxSubscriberCount(user.id);
+    const userProviders = await this.userService.getUserProviders(user.id);
+
     // 특정 채널 필터링 시 접근 권한 확인
     if (query.channelId) {
       const channel = await this.channelService.findById(query.channelId);
       if (channel) {
-        const subscriberCount = await this.userService.getMaxSubscriberCount(user.id);
-        const aboveMin = subscriberCount >= channel.minSubscribers;
-        const belowMax = channel.maxSubscribers === null || subscriberCount <= channel.maxSubscribers;
+        const hasAccess = this.channelService.hasChannelAccess(
+          channel,
+          subscriberCount,
+          userProviders,
+        );
 
-        if (!aboveMin || !belowMax) {
+        if (!hasAccess) {
           return {
             statusCode: HttpStatus.FORBIDDEN,
-            message: '해당 채널에 접근 권한이 없습니다',
+            message: 'You do not have access to this channel.',
           };
         }
       }
     }
 
     // 사용자가 접근 가능한 채널 ID 목록 조회
-    const subscriberCount = await this.userService.getMaxSubscriberCount(user.id);
-    const accessibleChannels = await this.channelService.getAccessibleChannels(subscriberCount);
+    const accessibleChannels = await this.channelService.getAccessibleChannels(
+      subscriberCount,
+      userProviders,
+    );
     const accessibleChannelIds = accessibleChannels.map(ch => ch.id);
 
     return this.postService.findAll(query, accessibleChannelIds);
@@ -139,7 +146,7 @@ export class PostController {
     if (!post) {
       return {
         statusCode: HttpStatus.NOT_FOUND,
-        message: '게시글을 찾을 수 없습니다',
+        message: 'Post not found.',
       };
     }
 
@@ -147,13 +154,17 @@ export class PostController {
     const channel = post.channel;
     if (channel) {
       const subscriberCount = await this.userService.getMaxSubscriberCount(user.id);
-      const aboveMin = subscriberCount >= channel.minSubscribers;
-      const belowMax = channel.maxSubscribers === null || subscriberCount <= channel.maxSubscribers;
+      const userProviders = await this.userService.getUserProviders(user.id);
+      const hasAccess = this.channelService.hasChannelAccess(
+        channel,
+        subscriberCount,
+        userProviders,
+      );
 
-      if (!aboveMin || !belowMax) {
+      if (!hasAccess) {
         return {
           statusCode: HttpStatus.FORBIDDEN,
-          message: '해당 채널에 접근 권한이 없습니다',
+          message: 'You do not have access to this channel.',
         };
       }
     }
@@ -186,20 +197,24 @@ export class PostController {
     const channel = await this.channelService.findById(dto.channelId);
     if (!channel) {
       return {
-        statusCode: HttpStatus.FORBIDDEN,
-        message: '존재하지 않는 채널입니다',
+        statusCode: HttpStatus.NOT_FOUND,
+        message: 'Channel not found.',
       };
     }
 
-    // 구독자 수 기반 채널 접근 권한 확인
+    // 구독자 수 + 플랫폼 기반 채널 접근 권한 확인
     const subscriberCount = await this.userService.getMaxSubscriberCount(user.id);
-    const aboveMin = subscriberCount >= channel.minSubscribers;
-    const belowMax = channel.maxSubscribers === null || subscriberCount <= channel.maxSubscribers;
+    const userProviders = await this.userService.getUserProviders(user.id);
+    const hasAccess = this.channelService.hasChannelAccess(
+      channel,
+      subscriberCount,
+      userProviders,
+    );
 
-    if (!aboveMin || !belowMax) {
+    if (!hasAccess) {
       return {
         statusCode: HttpStatus.FORBIDDEN,
-        message: '해당 채널에 접근 권한이 없습니다',
+        message: 'You do not have access to this channel.',
       };
     }
 

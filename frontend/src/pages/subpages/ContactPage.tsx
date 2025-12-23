@@ -80,7 +80,7 @@ const SelectIcon = styled.div`
   top: 50%;
   transform: translateY(-50%);
   pointer-events: none;
-  color: #6b7280;
+  color: #9ca3af;
 
   svg {
     width: 20px;
@@ -103,7 +103,7 @@ const Input = styled.input`
   }
 
   &::placeholder {
-    color: #6b7280;
+    color: #9ca3af;
   }
 `;
 
@@ -125,7 +125,7 @@ const Textarea = styled.textarea`
   }
 
   &::placeholder {
-    color: #6b7280;
+    color: #9ca3af;
   }
 `;
 

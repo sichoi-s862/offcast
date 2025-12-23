@@ -1,6 +1,6 @@
 import React, { useEffect, useCallback, useRef, useState } from 'react';
 import styled, { keyframes } from 'styled-components';
-import { Loader2, RefreshCw, X } from 'lucide-react';
+import { Loader2, RefreshCw, X, AlertCircle } from 'lucide-react';
 import { useChannelStore } from '../../stores';
 import { PostCard } from '../../components/post/PostCard';
 import { PostSkeleton } from '../../components/common/Skeleton';
@@ -153,9 +153,47 @@ const EmptyState = styled.div`
 `;
 
 const EmptyText = styled.p`
-  color: #6b7280;
+  color: #9ca3af;
   font-size: 14px;
   text-align: center;
+`;
+
+const ErrorState = styled.div`
+  padding: 60px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  animation: ${fadeIn} 0.3s ease-out;
+`;
+
+const ErrorIcon = styled.div`
+  width: 64px;
+  height: 64px;
+  background-color: rgba(239, 68, 68, 0.1);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  svg {
+    width: 32px;
+    height: 32px;
+    color: #f87171;
+  }
+`;
+
+const ErrorTitle = styled.h3`
+  font-size: 16px;
+  font-weight: 600;
+  color: #e5e7eb;
+`;
+
+const ErrorMessage = styled.p`
+  color: #9ca3af;
+  font-size: 14px;
+  text-align: center;
+  max-width: 280px;
 `;
 
 const RefreshButton = styled.button`
@@ -185,23 +223,6 @@ const RefreshButton = styled.button`
   }
 `;
 
-const PullToRefresh = styled.div<{ $visible: boolean }>`
-  height: ${props => props.$visible ? '50px' : '0'};
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  transition: height 0.2s;
-  color: #6b7280;
-  font-size: 12px;
-
-  svg {
-    width: 20px;
-    height: 20px;
-    margin-right: 8px;
-    animation: ${spin} 1s linear infinite;
-  }
-`;
 
 // 새로고침 주기 (30초)
 const REFRESH_INTERVAL = 30 * 1000;
@@ -219,10 +240,12 @@ export const FeedView: React.FC<FeedViewProps> = ({
     isLoadingMore,
     total,
     page,
+    error,
     fetchPosts,
     toggleLike,
     setFilters,
     refreshPosts,
+    clearError,
   } = usePostStore();
 
   const { channels } = useChannelStore();
@@ -231,7 +254,7 @@ export const FeedView: React.FC<FeedViewProps> = ({
     : null;
 
   const [sortType, setSortType] = useState<SortType>('latest');
-  const [isPullRefreshing, setIsPullRefreshing] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [showSkeleton, setShowSkeleton] = useState(true);
   const [isFadingOut, setIsFadingOut] = useState(false);
   const [isContentEntering, setIsContentEntering] = useState(false);
@@ -292,16 +315,34 @@ export const FeedView: React.FC<FeedViewProps> = ({
     };
   }, [sortType, searchQuery, selectedChannelId, fetchPosts, setFilters]);
 
-  // 주기적 새로고침 (30초마다)
+  // 주기적 새로고침 (30초마다) - 사용자 활동이 있을 때만
   useEffect(() => {
+    let lastActivity = Date.now();
+    const ACTIVITY_TIMEOUT = 5 * 60 * 1000; // 5분 내 활동 시에만 자동 새로고침
+
+    const handleActivity = () => {
+      lastActivity = Date.now();
+    };
+
+    // 사용자 활동 감지
+    window.addEventListener('scroll', handleActivity, { passive: true });
+    window.addEventListener('click', handleActivity, { passive: true });
+    window.addEventListener('keydown', handleActivity, { passive: true });
+
     const interval = setInterval(() => {
-      // 사용자가 스크롤 중이 아닐 때만 새로고침
-      if (!isLoading && !isLoadingMore) {
+      // 사용자가 최근 활동했고, 로딩 중이 아닐 때만 새로고침
+      const isRecentlyActive = Date.now() - lastActivity < ACTIVITY_TIMEOUT;
+      if (isRecentlyActive && !isLoading && !isLoadingMore) {
         refreshPosts();
       }
     }, REFRESH_INTERVAL);
 
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('scroll', handleActivity);
+      window.removeEventListener('click', handleActivity);
+      window.removeEventListener('keydown', handleActivity);
+    };
   }, [isLoading, isLoadingMore, refreshPosts]);
 
   // 무한 스크롤
@@ -338,13 +379,17 @@ export const FeedView: React.FC<FeedViewProps> = ({
     toggleLike(postId);
   }, [toggleLike]);
 
-  // Pull to refresh
-  const handlePullRefresh = useCallback(async () => {
-    if (isPullRefreshing) return;
-    setIsPullRefreshing(true);
-    await refreshPosts();
-    setIsPullRefreshing(false);
-  }, [isPullRefreshing, refreshPosts]);
+  // Refresh button - 최소 500ms 로딩 표시
+  const handleRefresh = useCallback(async () => {
+    if (isRefreshing) return;
+    setIsRefreshing(true);
+    clearError();
+
+    const minDelay = new Promise(resolve => setTimeout(resolve, 500));
+    await Promise.all([refreshPosts(), minDelay]);
+
+    setIsRefreshing(false);
+  }, [isRefreshing, refreshPosts, clearError]);
 
   // 포스트 클릭 (API 형식 -> 상세 페이지)
   const handlePostClick = useCallback((post: ApiPost) => {
@@ -357,10 +402,6 @@ export const FeedView: React.FC<FeedViewProps> = ({
 
   return (
     <Container ref={containerRef}>
-      <PullToRefresh $visible={isPullRefreshing}>
-        <Loader2 />
-        Refreshing...
-      </PullToRefresh>
 
       {selectedChannel ? (
         <ChannelHeader>
@@ -398,6 +439,21 @@ export const FeedView: React.FC<FeedViewProps> = ({
             ))}
           </PostList>
         </SkeletonWrapper>
+      ) : error ? (
+        <ErrorState>
+          <ErrorIcon>
+            <AlertCircle />
+          </ErrorIcon>
+          <ErrorTitle>Failed to load posts</ErrorTitle>
+          <ErrorMessage>{error}</ErrorMessage>
+          <RefreshButton
+            onClick={handleRefresh}
+            className={isRefreshing ? 'loading' : ''}
+          >
+            <RefreshCw />
+            Try Again
+          </RefreshButton>
+        </ErrorState>
       ) : posts.length === 0 ? (
         <ContentWrapper $entering={isContentEntering}>
           <EmptyState>
@@ -407,8 +463,8 @@ export const FeedView: React.FC<FeedViewProps> = ({
                 : 'No posts yet.\nBe the first to write!'}
             </EmptyText>
             <RefreshButton
-              onClick={handlePullRefresh}
-              className={isPullRefreshing ? 'loading' : ''}
+              onClick={handleRefresh}
+              className={isRefreshing ? 'loading' : ''}
             >
               <RefreshCw />
               Refresh

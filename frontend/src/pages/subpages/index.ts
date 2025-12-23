@@ -5,3 +5,5 @@ export { TermsPage } from './TermsPage';
 export { MyPostsPage } from './MyPostsPage';
 export { MyInfoPage } from './MyInfoPage';
 export { EditNickPage } from './EditNickPage';
+export { WithdrawPage } from './WithdrawPage';
+export { AgreementPage } from './AgreementPage';

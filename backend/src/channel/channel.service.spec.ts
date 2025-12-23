@@ -154,13 +154,21 @@ describe('ChannelService', () => {
     it('구독자 수에 따라 접근 가능한 채널을 반환해야 함', async () => {
       mockPrismaService.channel.findMany.mockResolvedValue([mockChannels[0]]);
 
-      const result = await service.getAccessibleChannels(5000);
+      const result = await service.getAccessibleChannels(5000, ['YOUTUBE']);
 
       expect(mockPrismaService.channel.findMany).toHaveBeenCalledWith({
         where: {
           isActive: true,
           minSubscribers: { lte: 5000 },
           OR: [{ maxSubscribers: null }, { maxSubscribers: { gte: 5000 } }],
+          AND: [
+            {
+              OR: [
+                { providerOnly: null },
+                { providerOnly: { in: ['YOUTUBE'] } },
+              ],
+            },
+          ],
         },
         orderBy: { sortOrder: 'asc' },
       });
@@ -169,7 +177,7 @@ describe('ChannelService', () => {
     it('100만 구독자는 모든 채널에 접근 가능해야 함', async () => {
       mockPrismaService.channel.findMany.mockResolvedValue(mockChannels);
 
-      const result = await service.getAccessibleChannels(1500000);
+      const result = await service.getAccessibleChannels(1500000, ['YOUTUBE']);
 
       expect(result.length).toBe(3);
     });

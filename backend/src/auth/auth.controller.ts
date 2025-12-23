@@ -10,6 +10,7 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse, ApiBody } from '@nestjs/swagger';
 import { IsEnum, IsOptional, IsString, IsNumber } from 'class-validator';
+import { Throttle } from '@nestjs/throttler';
 import type { Response, Request } from 'express';
 import { ConfigService } from '@nestjs/config';
 import { AuthService, DevLoginRequest } from './auth.service';
@@ -151,6 +152,7 @@ export class AuthController {
   // ============================================
 
   @Public()
+  @Throttle({ short: { limit: 5, ttl: 60000 } }) // 5 requests per minute
   @Post('dev/login')
   @ApiOperation({
     summary: '개발용 테스트 로그인',
@@ -199,6 +201,7 @@ export class AuthController {
   // ============================================
 
   @Public()
+  @Throttle({ short: { limit: 10, ttl: 60000 } }) // 10 requests per minute
   @Get('youtube')
   @UseGuards(YouTubeOAuthGuard)
   @ApiOperation({ summary: 'YouTube OAuth 로그인 시작' })
@@ -219,6 +222,7 @@ export class AuthController {
   // ============================================
 
   @Public()
+  @Throttle({ short: { limit: 10, ttl: 60000 } }) // 10 requests per minute
   @Get('tiktok')
   @UseGuards(TikTokOAuthGuard)
   @ApiOperation({ summary: 'TikTok OAuth 로그인 시작' })
@@ -239,6 +243,7 @@ export class AuthController {
   // ============================================
 
   @Public()
+  @Throttle({ short: { limit: 10, ttl: 60000 } }) // 10 requests per minute
   @Get('twitch')
   @UseGuards(TwitchOAuthGuard)
   @ApiOperation({ summary: 'Twitch OAuth 로그인 시작' })

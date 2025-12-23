@@ -9,18 +9,32 @@ export const GlobalStyle = createGlobalStyle`
     -webkit-user-select: none;
   }
 
-  html, body, #root {
+  html {
     height: 100%;
+    overflow: hidden;
   }
 
   body {
+    height: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
       Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
     background-color: #000;
     color: #fff;
-    min-height: 100vh;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    /* Hide scrollbar but keep functionality */
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE/Edge */
+  }
+
+  body::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Opera */
+  }
+
+  #root {
+    min-height: 100%;
   }
 
   a {

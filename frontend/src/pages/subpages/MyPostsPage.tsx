@@ -72,7 +72,7 @@ const PostMeta = styled.div`
   align-items: center;
   gap: 12px;
   font-size: 12px;
-  color: #6b7280;
+  color: #9ca3af;
 `;
 
 const MetaItem = styled.span`
@@ -89,7 +89,7 @@ const MetaItem = styled.span`
 const EmptyState = styled.div`
   padding: 80px 20px;
   text-align: center;
-  color: #6b7280;
+  color: #9ca3af;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -108,7 +108,7 @@ const LoadingState = styled.div`
   flex-direction: column;
   align-items: center;
   gap: 16px;
-  color: #6b7280;
+  color: #9ca3af;
 
   svg {
     width: 32px;

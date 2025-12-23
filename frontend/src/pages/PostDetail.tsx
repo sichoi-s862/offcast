@@ -66,10 +66,15 @@ const Header = styled.header`
 `;
 
 const BackButton = styled.button`
-  padding: 8px;
-  margin-left: -8px;
+  padding: 10px;
+  margin-left: -10px;
   color: white;
-  border-radius: 50%;
+  border-radius: 8px;
+  min-width: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 
   &:hover {
     background-color: #1f2937;
@@ -88,11 +93,19 @@ const HeaderTitle = styled.h2`
 `;
 
 const MenuButton = styled.button`
-  padding: 8px;
+  padding: 12px;
+  margin-right: -12px;
+  min-width: 44px;
+  min-height: 44px;
   color: #9ca3af;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
 
   &:hover {
     color: white;
+    background-color: rgba(255, 255, 255, 0.05);
   }
 
   svg {
@@ -223,7 +236,13 @@ const CommentHeader = styled.div`
 
 const CommentMenuButton = styled.button`
   color: #4b5563;
-  padding: 4px;
+  padding: 12px;
+  margin: -8px;
+  min-width: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 
   &:hover {
     color: #9ca3af;
@@ -259,7 +278,7 @@ const CommentMeta = styled.div`
   align-items: center;
   gap: 12px;
   font-size: 12px;
-  color: #6b7280;
+  color: #9ca3af;
   margin-top: 4px;
 `;
 
@@ -319,12 +338,17 @@ const ImagePreview = styled.div`
 
 const RemovePreviewButton = styled.button`
   position: absolute;
-  top: -4px;
-  right: -4px;
+  top: -8px;
+  right: -8px;
   background-color: #1f2937;
   border-radius: 50%;
-  padding: 2px;
+  padding: 8px;
+  min-width: 32px;
+  min-height: 32px;
   border: 1px solid #4b5563;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 
   svg {
     width: 12px;
@@ -360,10 +384,17 @@ const InputRow = styled.div`
 
 const CameraButton = styled.button`
   color: #9ca3af;
-  padding: 8px;
+  padding: 10px;
+  min-width: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
 
   &:hover {
     color: white;
+    background-color: rgba(255, 255, 255, 0.05);
   }
 
   svg {
@@ -390,7 +421,7 @@ const CommentInput = styled.input`
   outline: none;
 
   &::placeholder {
-    color: #6b7280;
+    color: #9ca3af;
   }
 `;
 
@@ -707,11 +738,11 @@ export const PostDetail: React.FC<PostDetailProps> = ({ postId, onBack, onAccess
     return (
       <Container>
         <Header>
-          <BackButton onClick={onBack}>
+          <BackButton onClick={onBack} aria-label="Go back">
             <ChevronLeft />
           </BackButton>
           <HeaderTitle>Post</HeaderTitle>
-          <MenuButton>
+          <MenuButton aria-label="Menu">
             <MoreVertical />
           </MenuButton>
         </Header>
@@ -726,11 +757,11 @@ export const PostDetail: React.FC<PostDetailProps> = ({ postId, onBack, onAccess
   return (
     <Container>
       <Header>
-        <BackButton onClick={onBack}>
+        <BackButton onClick={onBack} aria-label="Go back">
           <ChevronLeft />
         </BackButton>
         <HeaderTitle>{channel?.name || 'Post'}</HeaderTitle>
-        <MenuButton onClick={() => openMenu('post', currentPost.id, currentPost.authorId)}>
+        <MenuButton onClick={() => openMenu('post', currentPost.id, currentPost.authorId)} aria-label="Post menu">
           <MoreVertical />
         </MenuButton>
       </Header>
@@ -790,7 +821,7 @@ export const PostDetail: React.FC<PostDetailProps> = ({ postId, onBack, onAccess
                 <CommentItem>
                   <CommentHeader>
                     <AuthorDisplay infoString={buildAuthorInfo(comment)} iconSize={32} adjustIconMargin />
-                    <CommentMenuButton onClick={() => openMenu('comment', comment.id, comment.authorId)}>
+                    <CommentMenuButton onClick={() => openMenu('comment', comment.id, comment.authorId)} aria-label="Comment menu">
                       <MoreHorizontal />
                     </CommentMenuButton>
                   </CommentHeader>
@@ -817,7 +848,7 @@ export const PostDetail: React.FC<PostDetailProps> = ({ postId, onBack, onAccess
                       <CommentItem key={reply.id} $isReply onClick={() => handleReplyClick(comment)}>
                         <CommentHeader>
                           <AuthorDisplay infoString={buildAuthorInfo(reply)} iconSize={32} adjustIconMargin />
-                          <CommentMenuButton onClick={(e) => { e.stopPropagation(); openMenu('comment', reply.id, reply.authorId, true); }}>
+                          <CommentMenuButton onClick={(e) => { e.stopPropagation(); openMenu('comment', reply.id, reply.authorId, true); }} aria-label="Reply menu">
                             <MoreHorizontal />
                           </CommentMenuButton>
                         </CommentHeader>
@@ -858,13 +889,13 @@ export const PostDetail: React.FC<PostDetailProps> = ({ postId, onBack, onAccess
             <RemovePreviewButton onClick={() => {
               setCommentImagePreview(null);
               setUploadedCommentImage(null);
-            }}>
+            }} aria-label="Remove image">
               <X />
             </RemovePreviewButton>
           </ImagePreview>
         )}
         <InputRow>
-          <CameraButton onClick={() => commentFileRef.current?.click()}>
+          <CameraButton onClick={() => commentFileRef.current?.click()} aria-label="Add image">
             <Camera />
           </CameraButton>
           <HiddenInput

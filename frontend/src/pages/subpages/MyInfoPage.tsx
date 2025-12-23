@@ -53,7 +53,7 @@ const Field = styled.div``;
 
 const FieldLabel = styled.label`
   font-size: 14px;
-  color: #6b7280;
+  color: #9ca3af;
   display: block;
   margin-bottom: 8px;
 `;
@@ -126,7 +126,7 @@ const StatValue = styled.div`
 
 const StatLabel = styled.div`
   font-size: 12px;
-  color: #6b7280;
+  color: #9ca3af;
 `;
 
 const formatDate = (dateString: string): string => {

@@ -17,9 +17,7 @@ const pulse = keyframes`
 `;
 
 const Container = styled.div`
-  position: fixed;
-  inset: 0;
-  z-index: 100;
+  min-height: 100vh;
   background-color: black;
   display: flex;
   flex-direction: column;
@@ -28,6 +26,7 @@ const Container = styled.div`
   animation: ${fadeIn} 0.7s ease-out;
   max-width: 768px;
   margin: 0 auto;
+  overflow: hidden;
 `;
 
 const LogoWrapper = styled.div`
@@ -52,7 +51,7 @@ const Title = styled.h1`
 `;
 
 const Subtitle = styled.p`
-  color: #6b7280;
+  color: #9ca3af;
   font-size: 12px;
   margin-top: 8px;
 `;

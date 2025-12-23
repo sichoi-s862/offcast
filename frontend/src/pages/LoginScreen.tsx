@@ -23,13 +23,13 @@ const slideInFromBottom = keyframes`
 `;
 
 const Container = styled.div`
-  height: 100vh;
+  min-height: 100vh;
   background-color: black;
   display: flex;
   flex-direction: column;
   padding: 0 24px;
   animation: ${slideInFromBottom} 0.5s ease-out;
-  overflow-y: auto;
+  overflow: hidden;
   max-width: 768px;
   margin: 0 auto;
 `;

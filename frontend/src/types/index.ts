@@ -13,6 +13,7 @@ export interface ApiChannel {
   isActive: boolean;
   minSubscribers: number;
   maxSubscribers: number | null;
+  providerOnly: string | null; // 'YOUTUBE' | 'TIKTOK' | 'TWITCH'
   createdAt: string;
   updatedAt: string;
   _count?: {
@@ -158,6 +159,7 @@ export interface Reply {
 export interface CurrentUser {
   id?: string;
   provider: Provider | string;
+  providers?: string[]; // All linked providers (e.g., ['YOUTUBE', 'TIKTOK'])
   nickname: string;
   subscriberCount: string;
   rawSubCount: number;

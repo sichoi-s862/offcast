@@ -51,6 +51,7 @@ describe('ChannelController', () => {
 
   const mockUserService = {
     getMaxSubscriberCount: jest.fn(),
+    getUserProviders: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -93,6 +94,7 @@ describe('ChannelController', () => {
   describe('getAccessibleChannels', () => {
     it('접근 가능한 채널 목록을 조회해야 함', async () => {
       mockUserService.getMaxSubscriberCount.mockResolvedValue(100000);
+      mockUserService.getUserProviders.mockResolvedValue(['YOUTUBE']);
       mockChannelService.getAccessibleChannels.mockResolvedValue([mockChannel]);
 
       const result = await controller.getAccessibleChannels(mockUser as any);
@@ -103,17 +105,20 @@ describe('ChannelController', () => {
       );
       expect(mockChannelService.getAccessibleChannels).toHaveBeenCalledWith(
         100000,
+        ['YOUTUBE'],
       );
     });
 
     it('구독자 수가 낮으면 제한된 채널만 반환해야 함', async () => {
       mockUserService.getMaxSubscriberCount.mockResolvedValue(5000);
+      mockUserService.getUserProviders.mockResolvedValue(['YOUTUBE']);
       mockChannelService.getAccessibleChannels.mockResolvedValue([mockChannel]);
 
       await controller.getAccessibleChannels(mockUser as any);
 
       expect(mockChannelService.getAccessibleChannels).toHaveBeenCalledWith(
         5000,
+        ['YOUTUBE'],
       );
     });
   });
@@ -219,7 +224,7 @@ describe('ChannelController', () => {
 
       const result = await controller.seed();
 
-      expect(result.message).toBe('기본 채널이 생성되었습니다');
+      expect(result.message).toBe('Default channels created');
       expect(mockChannelService.seedDefaultChannels).toHaveBeenCalled();
     });
   });
@@ -230,7 +235,7 @@ describe('ChannelController', () => {
 
       const result = await controller.reset();
 
-      expect(result.message).toBe('채널이 리셋되었습니다');
+      expect(result.message).toBe('Channels reset successfully');
       expect(mockChannelService.resetAndSeedChannels).toHaveBeenCalled();
     });
   });

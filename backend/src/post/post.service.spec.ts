@@ -286,7 +286,7 @@ describe('PostService', () => {
       const result = await service.getAuthorInfo('post-1');
 
       expect(result).toContain('youtube');
-      expect(result).toContain('15만');
+      expect(result).toContain('150K+');
     });
 
     it('게시글이 없으면 null을 반환해야 함', async () => {
@@ -322,7 +322,7 @@ describe('PostService', () => {
 
       const result = await service.getAuthorInfo('post-1');
 
-      expect(result).toContain('5.5천');
+      expect(result).toContain('5K+');
     });
 
     it('구독자 수가 1000 미만이면 그대로 표시해야 함', async () => {
@@ -351,7 +351,7 @@ describe('PostService', () => {
       const result = await service.getAuthorInfo('post-1');
 
       expect(result).toContain('0');
-      expect(result).toContain('익명');
+      expect(result).toContain('Anonymous');
     });
   });
 
@@ -577,7 +577,7 @@ describe('PostService', () => {
           post: { create: jest.fn().mockResolvedValue(createdPost) },
           postImage: { createMany: jest.fn() },
           hashtag: { upsert: jest.fn().mockResolvedValue(mockHashtag) },
-          postHashtag: { create: jest.fn() },
+          postHashtag: { create: jest.fn(), createMany: jest.fn() },
         };
         return callback(tx);
       });

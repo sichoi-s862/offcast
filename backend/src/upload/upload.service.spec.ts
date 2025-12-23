@@ -358,7 +358,7 @@ describe('UploadService', () => {
   describe('validateMimeType 에러 메시지', () => {
     it('지원하는 형식 목록을 포함한 에러 메시지를 던져야 함', () => {
       expect(() => service.validateMimeType('image/bmp')).toThrow(
-        /지원하지 않는 이미지 형식입니다/,
+        /Unsupported image format/,
       );
     });
   });
@@ -366,7 +366,7 @@ describe('UploadService', () => {
   describe('validateFileSize 에러 메시지', () => {
     it('최대 파일 크기를 포함한 에러 메시지를 던져야 함', () => {
       expect(() => service.validateFileSize(100 * 1024 * 1024)).toThrow(
-        /파일 크기가 너무 큽니다/,
+        /File size too large/,
       );
     });
   });

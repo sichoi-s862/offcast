@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useSearchParams, useParams, useLocation } from 'react-router-dom';
 import { ShieldX } from 'lucide-react';
@@ -6,12 +6,23 @@ import { GlobalStyle } from './styles/GlobalStyle';
 import { SplashScreen } from './pages/SplashScreen';
 import { LoginScreen } from './pages/LoginScreen';
 import { NicknameScreen } from './pages/NicknameScreen';
-import { MainApp } from './pages/MainApp';
-import { PostDetail } from './pages/PostDetail';
-import { PrivacyPage, TermsPage } from './pages/subpages';
 import { ToastProvider } from './components/common/Toast';
 import type { Provider } from './types';
 import { useAuthStore, useChannelStore, toast } from './stores';
+import { saveAgreements, type AgreementType } from './api';
+
+// Lazy loaded components
+const MainApp = lazy(() => import('./pages/MainApp'));
+const PostDetail = lazy(() => import('./pages/PostDetail'));
+const PrivacyPage = lazy(() => import('./pages/subpages/PrivacyPage'));
+const TermsPage = lazy(() => import('./pages/subpages/TermsPage'));
+const MyPostsPage = lazy(() => import('./pages/subpages/MyPostsPage'));
+const MyInfoPage = lazy(() => import('./pages/subpages/MyInfoPage'));
+const EditNickPage = lazy(() => import('./pages/subpages/EditNickPage'));
+const ContactPage = lazy(() => import('./pages/subpages/ContactPage'));
+const CustomerCenterPage = lazy(() => import('./pages/subpages/CustomerCenterPage'));
+const WithdrawPage = lazy(() => import('./pages/subpages/WithdrawPage'));
+const AgreementPage = lazy(() => import('./pages/subpages/AgreementPage'));
 
 // 권한 없음 페이지 스타일
 const fadeIn = keyframes`
@@ -141,14 +152,19 @@ const PostDetailRoute: React.FC = () => {
   const [authChecked, setAuthChecked] = useState(false);
   const [accessDenied, setAccessDenied] = useState(false);
 
-  // 인증 초기화
+  // 인증 초기화 - 이미 인증된 상태면 스킵
   useEffect(() => {
+    if (isAuthenticated && currentUser) {
+      setAuthChecked(true);
+      return;
+    }
+
     const checkAuth = async () => {
       await initAuth();
       setAuthChecked(true);
     };
     checkAuth();
-  }, [initAuth]);
+  }, []); // 마운트 시 1회만 실행
 
   // postId가 없으면 홈으로
   if (!postId) {
@@ -194,6 +210,184 @@ const TermsRoute: React.FC = () => {
   return <TermsPage onBack={safeBack} />;
 };
 
+// 마이페이지 서브페이지 라우트들
+const MyPostsRoute: React.FC = () => {
+  const safeBack = useSafeBack();
+  const navigate = useNavigate();
+  const { user: currentUser, isAuthenticated, isLoading, initAuth } = useAuthStore();
+  const [authChecked, setAuthChecked] = useState(false);
+
+  useEffect(() => {
+    if (isAuthenticated && currentUser) {
+      setAuthChecked(true);
+      return;
+    }
+    const checkAuth = async () => {
+      await initAuth();
+      setAuthChecked(true);
+    };
+    checkAuth();
+  }, []);
+
+  if (!authChecked || isLoading) return null;
+  if (!isAuthenticated || !currentUser) return <Navigate to="/home" replace />;
+
+  const handlePostClick = (post: { id: string }) => {
+    incrementAppHistory();
+    navigate(`/post/${post.id}`);
+  };
+
+  return <MyPostsPage currentUser={currentUser} onBack={safeBack} onPostClick={handlePostClick} />;
+};
+
+const MyInfoRoute: React.FC = () => {
+  const safeBack = useSafeBack();
+  const { user: currentUser, isAuthenticated, isLoading, initAuth } = useAuthStore();
+  const [authChecked, setAuthChecked] = useState(false);
+
+  useEffect(() => {
+    if (isAuthenticated && currentUser) {
+      setAuthChecked(true);
+      return;
+    }
+    const checkAuth = async () => {
+      await initAuth();
+      setAuthChecked(true);
+    };
+    checkAuth();
+  }, []);
+
+  if (!authChecked || isLoading) return null;
+  if (!isAuthenticated || !currentUser) return <Navigate to="/home" replace />;
+
+  return <MyInfoPage currentUser={currentUser} onBack={safeBack} />;
+};
+
+const EditNickRoute: React.FC = () => {
+  const safeBack = useSafeBack();
+  const { user: currentUser, isAuthenticated, isLoading, initAuth, setUser } = useAuthStore();
+  const [authChecked, setAuthChecked] = useState(false);
+
+  useEffect(() => {
+    if (isAuthenticated && currentUser) {
+      setAuthChecked(true);
+      return;
+    }
+    const checkAuth = async () => {
+      await initAuth();
+      setAuthChecked(true);
+    };
+    checkAuth();
+  }, []);
+
+  if (!authChecked || isLoading) return null;
+  if (!isAuthenticated || !currentUser) return <Navigate to="/home" replace />;
+
+  const handleUpdateNickname = (nickname: string) => {
+    setUser({ ...currentUser, nickname });
+  };
+
+  return <EditNickPage currentUser={currentUser} onBack={safeBack} onUpdateNickname={handleUpdateNickname} />;
+};
+
+const ContactRoute: React.FC = () => {
+  const safeBack = useSafeBack();
+  const { isAuthenticated, isLoading, initAuth } = useAuthStore();
+  const [authChecked, setAuthChecked] = useState(false);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      setAuthChecked(true);
+      return;
+    }
+    const checkAuth = async () => {
+      await initAuth();
+      setAuthChecked(true);
+    };
+    checkAuth();
+  }, []);
+
+  if (!authChecked || isLoading) return null;
+  if (!isAuthenticated) return <Navigate to="/home" replace />;
+
+  return <ContactPage onBack={safeBack} />;
+};
+
+const CustomerCenterRoute: React.FC = () => {
+  const safeBack = useSafeBack();
+  const { isAuthenticated, isLoading, initAuth } = useAuthStore();
+  const [authChecked, setAuthChecked] = useState(false);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      setAuthChecked(true);
+      return;
+    }
+    const checkAuth = async () => {
+      await initAuth();
+      setAuthChecked(true);
+    };
+    checkAuth();
+  }, []);
+
+  if (!authChecked || isLoading) return null;
+  if (!isAuthenticated) return <Navigate to="/home" replace />;
+
+  return <CustomerCenterPage onBack={safeBack} />;
+};
+
+const WithdrawRoute: React.FC = () => {
+  const safeBack = useSafeBack();
+  const navigate = useNavigate();
+  const { isAuthenticated, isLoading, initAuth, logout } = useAuthStore();
+  const [authChecked, setAuthChecked] = useState(false);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      setAuthChecked(true);
+      return;
+    }
+    const checkAuth = async () => {
+      await initAuth();
+      setAuthChecked(true);
+    };
+    checkAuth();
+  }, []);
+
+  if (!authChecked || isLoading) return null;
+  if (!isAuthenticated) return <Navigate to="/home" replace />;
+
+  const handleWithdrawSuccess = () => {
+    logout();
+    navigate('/home', { replace: true });
+  };
+
+  return <WithdrawPage onBack={safeBack} onWithdrawSuccess={handleWithdrawSuccess} />;
+};
+
+const AgreementRoute: React.FC = () => {
+  const safeBack = useSafeBack();
+  const { isAuthenticated, isLoading, initAuth } = useAuthStore();
+  const [authChecked, setAuthChecked] = useState(false);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      setAuthChecked(true);
+      return;
+    }
+    const checkAuth = async () => {
+      await initAuth();
+      setAuthChecked(true);
+    };
+    checkAuth();
+  }, []);
+
+  if (!authChecked || isLoading) return null;
+  if (!isAuthenticated) return <Navigate to="/home" replace />;
+
+  return <AgreementPage onBack={safeBack} />;
+};
+
 // 스플래시 + 인증 체크 라우트
 const SplashRoute: React.FC = () => {
   const navigate = useNavigate();
@@ -202,17 +396,17 @@ const SplashRoute: React.FC = () => {
   const [splashDone, setSplashDone] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
 
-  // 인증 초기화
+  // 인증 초기화 (initAuth는 내부적으로 중복 호출 방지됨)
   useEffect(() => {
     const init = async () => {
       const hasAuth = await initAuth();
       if (hasAuth) {
-        fetchChannels();
+        fetchChannels(); // fetchChannels도 캐시/중복 방지 적용됨
       }
       setAuthChecked(true);
     };
     init();
-  }, [initAuth, fetchChannels]);
+  }, []); // 의존성 제거 - 마운트 시 1회만 실행
 
   // 스플래시 완료 후 이동
   useEffect(() => {
@@ -237,8 +431,15 @@ const MainTabRoute: React.FC<{ tab: 'home' | 'topics' | 'my' }> = ({ tab }) => {
   const [searchParams] = useSearchParams();
   const [authChecked, setAuthChecked] = useState(false);
 
-  // 인증 초기화
+  // 인증 초기화 - 이미 인증된 상태면 스킵
   useEffect(() => {
+    // 이미 인증 완료된 상태면 바로 체크 완료
+    if (isAuthenticated && currentUser) {
+      fetchChannels(); // 캐시 적용됨
+      setAuthChecked(true);
+      return;
+    }
+
     const init = async () => {
       const hasAuth = await initAuth();
       if (hasAuth) {
@@ -247,7 +448,7 @@ const MainTabRoute: React.FC<{ tab: 'home' | 'topics' | 'my' }> = ({ tab }) => {
       setAuthChecked(true);
     };
     init();
-  }, [initAuth, fetchChannels]);
+  }, []); // 마운트 시 1회만 실행
 
   // OAuth 콜백 처리
   useEffect(() => {
@@ -320,7 +521,10 @@ const LoginRedirect: React.FC = () => {
     setAppState('nickname');
   }, []);
 
-  const handleNicknameComplete = useCallback(async (nickname: string) => {
+  const handleNicknameComplete = useCallback(async (
+    nickname: string,
+    agreements: { termsOfService: boolean; privacyPolicy: boolean; marketing: boolean }
+  ) => {
     if (!selectedProvider) {
       setAppState('login');
       return;
@@ -332,6 +536,26 @@ const LoginRedirect: React.FC = () => {
         nickname,
         subscriberCount: getDefaultSubscriberCount(selectedProvider),
       });
+
+      // 약관 동의 저장
+      const agreementItems: { type: AgreementType; version: string }[] = [];
+      if (agreements.termsOfService) {
+        agreementItems.push({ type: 'TERMS_OF_SERVICE', version: '1.0.0' });
+      }
+      if (agreements.privacyPolicy) {
+        agreementItems.push({ type: 'PRIVACY_POLICY', version: '1.0.0' });
+      }
+      if (agreements.marketing) {
+        agreementItems.push({ type: 'MARKETING', version: '1.0.0' });
+      }
+
+      if (agreementItems.length > 0) {
+        try {
+          await saveAgreements(agreementItems);
+        } catch (err) {
+          console.error('Failed to save agreements:', err);
+        }
+      }
 
       fetchChannels();
 
@@ -354,6 +578,14 @@ const LoginRedirect: React.FC = () => {
       <NicknameScreen
         onComplete={handleNicknameComplete}
         onBack={() => setAppState('login')}
+        onViewTerms={() => {
+          incrementAppHistory();
+          navigate('/terms');
+        }}
+        onViewPrivacy={() => {
+          incrementAppHistory();
+          navigate('/privacy');
+        }}
       />
     );
   }
@@ -361,22 +593,39 @@ const LoginRedirect: React.FC = () => {
   return <LoginScreen onLogin={handleLogin} />;
 };
 
+// Loading fallback for lazy components (스플래시에서 이미 로딩했으므로 빈 화면)
+const LazyFallback = () => (
+  <div style={{
+    minHeight: '100vh',
+    backgroundColor: 'black',
+  }} />
+);
+
 const App: React.FC = () => {
   return (
     <BrowserRouter>
       <GlobalStyle />
       <ToastProvider />
-      <Routes>
-        <Route path="/" element={<SplashRoute />} />
-        <Route path="/home" element={<MainTabRoute tab="home" />} />
-        <Route path="/channels" element={<MainTabRoute tab="topics" />} />
-        <Route path="/my" element={<MainTabRoute tab="my" />} />
-        <Route path="/auth/callback" element={<LoginRedirect />} />
-        <Route path="/post/:postId" element={<PostDetailRoute />} />
-        <Route path="/privacy" element={<PrivacyRoute />} />
-        <Route path="/terms" element={<TermsRoute />} />
-        <Route path="*" element={<Navigate to="/home" replace />} />
-      </Routes>
+      <Suspense fallback={<LazyFallback />}>
+        <Routes>
+          <Route path="/" element={<SplashRoute />} />
+          <Route path="/home" element={<MainTabRoute tab="home" />} />
+          <Route path="/channels" element={<MainTabRoute tab="topics" />} />
+          <Route path="/my" element={<MainTabRoute tab="my" />} />
+          <Route path="/auth/callback" element={<LoginRedirect />} />
+          <Route path="/post/:postId" element={<PostDetailRoute />} />
+          <Route path="/privacy" element={<PrivacyRoute />} />
+          <Route path="/terms" element={<TermsRoute />} />
+          <Route path="/my/posts" element={<MyPostsRoute />} />
+          <Route path="/my/info" element={<MyInfoRoute />} />
+          <Route path="/my/edit-nick" element={<EditNickRoute />} />
+          <Route path="/my/contact" element={<ContactRoute />} />
+          <Route path="/my/help" element={<CustomerCenterRoute />} />
+          <Route path="/my/withdraw" element={<WithdrawRoute />} />
+          <Route path="/my/agreements" element={<AgreementRoute />} />
+          <Route path="*" element={<Navigate to="/home" replace />} />
+        </Routes>
+      </Suspense>
     </BrowserRouter>
   );
 };

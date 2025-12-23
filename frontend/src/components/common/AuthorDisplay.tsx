@@ -26,7 +26,7 @@ const Nickname = styled.span`
 const Dot = styled.span`
   width: 2px;
   height: 2px;
-  background-color: #6b7280;
+  background-color: #9ca3af;
   border-radius: 50%;
   margin: 0 2px;
 `;
@@ -45,7 +45,7 @@ const SubscriberInfo = styled.div`
 `;
 
 const TimeText = styled.span`
-  color: #6b7280;
+  color: #9ca3af;
   font-size: 14px;
 `;
 

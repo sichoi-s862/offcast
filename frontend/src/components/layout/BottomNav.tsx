@@ -34,12 +34,20 @@ const NavButton = styled.button<{ $active: boolean }>`
   align-items: center;
   justify-content: center;
   gap: 4px;
-  padding: 8px 16px;
-  color: ${props => props.$active ? '#00D4AA' : '#6b7280'};
-  transition: color 0.2s;
+  padding: 8px 24px;
+  min-height: 56px;
+  min-width: 64px;
+  color: ${props => props.$active ? '#00D4AA' : '#9ca3af'};
+  transition: all 0.2s;
+  border-radius: 12px;
 
   &:hover {
-    color: ${props => props.$active ? '#00D4AA' : '#9ca3af'};
+    color: ${props => props.$active ? '#00D4AA' : '#d1d5db'};
+    background-color: rgba(255, 255, 255, 0.05);
+  }
+
+  &:active {
+    background-color: rgba(255, 255, 255, 0.1);
   }
 
   svg {
@@ -57,15 +65,15 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, onTabChange }) 
   return (
     <NavContainer>
       <NavInner>
-        <NavButton $active={activeTab === 'home'} onClick={() => onTabChange('home')}>
+        <NavButton $active={activeTab === 'home'} onClick={() => onTabChange('home')} aria-label="Home">
           <Home />
           <NavLabel>Home</NavLabel>
         </NavButton>
-        <NavButton $active={activeTab === 'topics'} onClick={() => onTabChange('topics')}>
+        <NavButton $active={activeTab === 'topics'} onClick={() => onTabChange('topics')} aria-label="Channels">
           <MessageSquare />
           <NavLabel>Channels</NavLabel>
         </NavButton>
-        <NavButton $active={activeTab === 'my'} onClick={() => onTabChange('my')}>
+        <NavButton $active={activeTab === 'my'} onClick={() => onTabChange('my')} aria-label="My Page">
           <User />
           <NavLabel>My</NavLabel>
         </NavButton>

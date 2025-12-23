@@ -553,7 +553,7 @@ describe('CommentService', () => {
       const result = await service.getAuthorInfo('comment-1');
 
       expect(result).toContain('youtube');
-      expect(result).toContain('15만');
+      expect(result).toContain('150K+');
     });
 
     it('댓글이 없으면 null을 반환해야 함', async () => {
@@ -639,7 +639,7 @@ describe('CommentService', () => {
 
       const result = await service.getAuthorInfo('comment-1');
 
-      expect(result).toContain('5.5천');
+      expect(result).toContain('5K+');
     });
 
     it('1000 미만 구독자 수는 그대로 표시해야 함', async () => {
@@ -659,10 +659,10 @@ describe('CommentService', () => {
 
       const result = await service.getAuthorInfo('comment-1');
 
-      expect(result).toContain('500');
+      expect(result).toContain('500+');
     });
 
-    it('10000 이상 구독자 수를 만 단위로 포맷해야 함', async () => {
+    it('10000 이상 구독자 수를 K 단위로 포맷해야 함', async () => {
       mockPrismaService.comment.findUnique.mockResolvedValue({
         ...mockComment,
         author: {
@@ -679,7 +679,7 @@ describe('CommentService', () => {
 
       const result = await service.getAuthorInfo('comment-1');
 
-      expect(result).toContain('12만');
+      expect(result).toContain('123K+');
     });
 
     it('구독자 수가 0이면 0을 표시해야 함', async () => {

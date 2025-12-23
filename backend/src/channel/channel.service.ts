@@ -12,6 +12,7 @@ export interface CreateChannelDto {
   minSubscribers: number;
   maxSubscribers?: number;
   sortOrder?: number;
+  providerOnly?: string; // 'youtube' | 'tiktok' | 'twitch' - platform-specific channel
 }
 
 /**
@@ -61,6 +62,7 @@ export class ChannelService {
         description: data.description,
         minSubscribers: data.minSubscribers,
         maxSubscribers: data.maxSubscribers,
+        providerOnly: data.providerOnly,
         sortOrder: data.sortOrder || 0,
       },
     });
@@ -68,9 +70,12 @@ export class ChannelService {
 
   /**
    * 사용자가 접근 가능한 채널 목록 조회
-   * - 구독자 수에 따라 접근 가능한 채널 필터링
+   * - 구독자 수 및 플랫폼에 따라 접근 가능한 채널 필터링
    */
-  async getAccessibleChannels(subscriberCount: number): Promise<Channel[]> {
+  async getAccessibleChannels(
+    subscriberCount: number,
+    userProviders: string[] = [],
+  ): Promise<Channel[]> {
     return this.prisma.channel.findMany({
       where: {
         isActive: true,
@@ -79,9 +84,44 @@ export class ChannelService {
           { maxSubscribers: null },
           { maxSubscribers: { gte: subscriberCount } },
         ],
+        // providerOnly가 null이거나, 사용자의 provider 목록에 포함된 채널만
+        AND: [
+          {
+            OR: [
+              { providerOnly: null },
+              { providerOnly: { in: userProviders } },
+            ],
+          },
+        ],
       },
       orderBy: { sortOrder: 'asc' },
     });
+  }
+
+  /**
+   * 채널 접근 권한 확인 (구독자 수 + 플랫폼)
+   */
+  hasChannelAccess(
+    channel: Channel,
+    subscriberCount: number,
+    userProviders: string[],
+  ): boolean {
+    // 구독자 수 체크
+    const aboveMin = subscriberCount >= channel.minSubscribers;
+    const belowMax =
+      channel.maxSubscribers === null ||
+      subscriberCount <= channel.maxSubscribers;
+
+    if (!aboveMin || !belowMax) {
+      return false;
+    }
+
+    // providerOnly 체크
+    if (channel.providerOnly && !userProviders.includes(channel.providerOnly)) {
+      return false;
+    }
+
+    return true;
   }
 
   /**
@@ -174,7 +214,7 @@ export class ChannelService {
    */
   async seedDefaultChannels(): Promise<void> {
     const defaultChannels: CreateChannelDto[] = [
-      // Tier-based lounges (separated by subscriber range - only that range can access)
+      // Tier-based lounges (higher tier can access lower tiers)
       {
         name: 'General',
         slug: 'free',
@@ -185,33 +225,29 @@ export class ChannelService {
       {
         name: '100+ Lounge',
         slug: 'lounge-100',
-        description: 'For creators with 100~999 subscribers',
+        description: 'For creators with 100+ subscribers',
         minSubscribers: 100,
-        maxSubscribers: 999,
         sortOrder: 1,
       },
       {
         name: '1K+ Lounge',
         slug: 'lounge-1k',
-        description: 'For creators with 1,000~9,999 subscribers',
+        description: 'For creators with 1,000+ subscribers',
         minSubscribers: 1000,
-        maxSubscribers: 9999,
         sortOrder: 2,
       },
       {
         name: '10K+ Lounge',
         slug: 'lounge-10k',
-        description: 'For creators with 10,000~99,999 subscribers',
+        description: 'For creators with 10,000+ subscribers',
         minSubscribers: 10000,
-        maxSubscribers: 99999,
         sortOrder: 3,
       },
       {
         name: '100K+ Lounge',
         slug: 'lounge-100k',
-        description: 'For creators with 100,000~999,999 subscribers',
+        description: 'For creators with 100,000+ subscribers',
         minSubscribers: 100000,
-        maxSubscribers: 999999,
         sortOrder: 4,
       },
       {
@@ -220,6 +256,31 @@ export class ChannelService {
         description: 'For creators with 1 million+ subscribers',
         minSubscribers: 1000000,
         sortOrder: 5,
+      },
+      // Platform-specific channels
+      {
+        name: 'YouTube Creators',
+        slug: 'youtube',
+        description: 'Exclusive channel for YouTube creators',
+        minSubscribers: 0,
+        providerOnly: 'YOUTUBE',
+        sortOrder: 6,
+      },
+      {
+        name: 'TikTok Creators',
+        slug: 'tiktok',
+        description: 'Exclusive channel for TikTok creators',
+        minSubscribers: 0,
+        providerOnly: 'TIKTOK',
+        sortOrder: 7,
+      },
+      {
+        name: 'Twitch Streamers',
+        slug: 'twitch',
+        description: 'Exclusive channel for Twitch streamers',
+        minSubscribers: 0,
+        providerOnly: 'TWITCH',
+        sortOrder: 8,
       },
       // Content categories (top 5 by streamer popularity)
       {

@@ -22,6 +22,7 @@ interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
+  _initPromise: Promise<boolean> | null; // 중복 요청 방지
 
   // 액션
   setToken: (token: string | null) => void;
@@ -42,6 +43,7 @@ export const useAuthStore = create<AuthState>()(
       isAuthenticated: false,
       isLoading: false,
       error: null,
+      _initPromise: null,
 
       // 토큰 설정
       setToken: (token) => {
@@ -65,9 +67,13 @@ export const useAuthStore = create<AuthState>()(
           const primaryAccount = apiUser.accounts?.[0];
           const subscriberCount = primaryAccount?.subscriberCount || request.subscriberCount;
 
+          // Get all linked providers
+          const providers = apiUser.accounts?.map(acc => acc.provider?.toUpperCase()) || [];
+
           const currentUser: CurrentUser = {
             id: apiUser.id,
             provider: (primaryAccount?.provider?.toLowerCase() || request.provider.toLowerCase()) as Provider,
+            providers: providers.length > 0 ? providers : [request.provider.toUpperCase()],
             nickname: apiUser.nickname,
             subscriberCount: formatSubscriberCount(subscriberCount),
             rawSubCount: subscriberCount,
@@ -109,9 +115,13 @@ export const useAuthStore = create<AuthState>()(
           const primaryAccount = apiUser.accounts?.[0];
           const subscriberCount = primaryAccount?.subscriberCount || 0;
 
+          // Get all linked providers
+          const providers = apiUser.accounts?.map(acc => acc.provider?.toUpperCase()) || [];
+
           const currentUser: CurrentUser = {
             id: apiUser.id,
             provider: (primaryAccount?.provider?.toLowerCase() || 'youtube') as Provider,
+            providers: providers.length > 0 ? providers : ['YOUTUBE'],
             nickname: apiUser.nickname,
             subscriberCount: formatSubscriberCount(subscriberCount),
             rawSubCount: subscriberCount,
@@ -128,23 +138,35 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
-      // 인증 초기화 (앱 시작 시)
+      // 인증 초기화 (앱 시작 시) - 중복 호출 방지
       initAuth: async () => {
+        // 이미 진행 중인 초기화가 있으면 그 Promise 반환
+        const existingPromise = get()._initPromise;
+        if (existingPromise) {
+          return existingPromise;
+        }
+
         const storedToken = getAuthToken();
         if (!storedToken) {
           set({ isAuthenticated: false });
           return false;
         }
 
-        set({ token: storedToken, isLoading: true });
-        try {
-          await get().loadProfile();
-          set({ isAuthenticated: true, isLoading: false });
-          return true;
-        } catch (error) {
-          get().logout();
-          return false;
-        }
+        const initPromise = (async () => {
+          set({ token: storedToken, isLoading: true });
+          try {
+            await get().loadProfile();
+            set({ isAuthenticated: true, isLoading: false, _initPromise: null });
+            return true;
+          } catch (error) {
+            get().logout();
+            set({ _initPromise: null });
+            return false;
+          }
+        })();
+
+        set({ _initPromise: initPromise });
+        return initPromise;
       },
 
       // 에러 클리어

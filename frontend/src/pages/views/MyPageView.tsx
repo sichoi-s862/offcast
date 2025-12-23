@@ -10,18 +10,18 @@ import {
   ScrollText,
   MessageSquare,
   HelpCircle,
-  LogOut
+  LogOut,
+  UserX,
+  ClipboardCheck
 } from 'lucide-react';
 import { PlatformIcon } from '../../components/common/PlatformIcon';
 import type { CurrentUser } from '../../types';
 import { incrementAppHistory } from '../../App';
 
-type Screen = 'main' | 'my_posts' | 'my_info' | 'edit_nick' | 'contact' | 'customer_center';
-
 interface MyPageViewProps {
   currentUser: CurrentUser;
   onLogout: () => void;
-  onNavigate: (screen: Screen) => void;
+  onNavigate: (screen: string) => void;
 }
 
 const fadeIn = keyframes`
@@ -129,7 +129,7 @@ const ChevronIcon = styled.div`
   svg {
     width: 16px;
     height: 16px;
-    color: #6b7280;
+    color: #9ca3af;
   }
 `;
 
@@ -206,6 +206,13 @@ export const MyPageView: React.FC<MyPageViewProps> = ({
             </MenuItemLeft>
             <ChevronIcon><ChevronRight /></ChevronIcon>
           </MenuItem>
+          <MenuItem onClick={() => onNavigate('agreements')}>
+            <MenuItemLeft>
+              <MenuIcon><ClipboardCheck /></MenuIcon>
+              <MenuText>Manage Agreements</MenuText>
+            </MenuItemLeft>
+            <ChevronIcon><ChevronRight /></ChevronIcon>
+          </MenuItem>
         </MenuCard>
 
         <MenuCard>
@@ -214,6 +221,13 @@ export const MyPageView: React.FC<MyPageViewProps> = ({
               <MenuIcon $danger><LogOut /></MenuIcon>
               <MenuText $danger>Log Out</MenuText>
             </MenuItemLeft>
+          </MenuItem>
+          <MenuItem onClick={() => onNavigate('withdraw')}>
+            <MenuItemLeft>
+              <MenuIcon $danger><UserX /></MenuIcon>
+              <MenuText $danger>Delete Account</MenuText>
+            </MenuItemLeft>
+            <ChevronIcon><ChevronRight /></ChevronIcon>
           </MenuItem>
         </MenuCard>
       </Content>

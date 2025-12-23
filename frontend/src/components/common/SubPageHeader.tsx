@@ -22,11 +22,16 @@ const Header = styled.header`
 `;
 
 const BackButton = styled.button`
-  padding: 8px;
-  margin-left: -8px;
+  padding: 10px;
+  margin-left: -10px;
+  min-width: 44px;
+  min-height: 44px;
   color: white;
-  border-radius: 50%;
+  border-radius: 8px;
   transition: background-color 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 
   &:hover {
     background-color: #1f2937;
@@ -46,7 +51,7 @@ const Title = styled.h1`
 
 export const SubPageHeader: React.FC<SubPageHeaderProps> = ({ title, onBack }) => (
   <Header>
-    <BackButton onClick={onBack}>
+    <BackButton onClick={onBack} aria-label="Go back">
       <ChevronLeft />
     </BackButton>
     <Title>{title}</Title>

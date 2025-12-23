@@ -380,6 +380,40 @@ export const getMyAccounts = async () => {
   return response.data;
 };
 
+// 회원 탈퇴
+export const withdrawUser = async (): Promise<{ message: string }> => {
+  const response = await apiClient.delete<{ message: string }>('/users/withdraw');
+  return response.data;
+};
+
+// ==================== 약관 동의 API ====================
+
+export type AgreementType = 'TERMS_OF_SERVICE' | 'PRIVACY_POLICY' | 'MARKETING';
+
+export interface AgreementItem {
+  type: AgreementType;
+  version: string;
+}
+
+export interface UserAgreement {
+  id: string;
+  agreementType: AgreementType;
+  version: string;
+  agreedAt: string;
+}
+
+// 약관 동의 저장
+export const saveAgreements = async (agreements: AgreementItem[]): Promise<{ message: string }> => {
+  const response = await apiClient.post<{ message: string }>('/users/agreements', { agreements });
+  return response.data;
+};
+
+// 내 약관 동의 목록 조회
+export const getMyAgreements = async (): Promise<{ agreements: UserAgreement[]; hasRequiredAgreements: boolean }> => {
+  const response = await apiClient.get('/users/agreements');
+  return response.data;
+};
+
 // ==================== 문의 API ====================
 
 export type InquiryCategory = 'GENERAL' | 'BUG_REPORT' | 'SUGGESTION' | 'PARTNERSHIP' | 'ACCOUNT' | 'OTHER';

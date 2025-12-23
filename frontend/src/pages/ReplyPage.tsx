@@ -130,7 +130,7 @@ const CommentMeta = styled.div`
   align-items: center;
   gap: 12px;
   font-size: 12px;
-  color: #6b7280;
+  color: #9ca3af;
   margin-top: 12px;
 `;
 
@@ -188,7 +188,7 @@ const ReplyItem = styled.div`
 const EmptyReplies = styled.div`
   padding: 32px 16px;
   text-align: center;
-  color: #6b7280;
+  color: #9ca3af;
   font-size: 14px;
 `;
 
@@ -292,7 +292,7 @@ const Input = styled.input`
   outline: none;
 
   &::placeholder {
-    color: #6b7280;
+    color: #9ca3af;
   }
 `;
 

@@ -13,6 +13,7 @@ import {
   ApiQuery,
   ApiBody,
 } from '@nestjs/swagger';
+import { SkipThrottle } from '@nestjs/throttler';
 import { HealthService } from './health.service';
 import { Public } from '../common/decorators/public.decorator';
 
@@ -23,6 +24,7 @@ import { Public } from '../common/decorators/public.decorator';
  */
 @ApiTags('Health')
 @Controller('health')
+@SkipThrottle()
 export class HealthController {
   constructor(private healthService: HealthService) {}
 

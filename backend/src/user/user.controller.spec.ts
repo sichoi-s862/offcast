@@ -89,7 +89,7 @@ describe('UserController', () => {
         nickname: '새닉네임',
       });
 
-      expect(result.message).toBe('닉네임이 변경되었습니다.');
+      expect(result.message).toBe('Nickname has been updated.');
       expect(result.user.nickname).toBe('새닉네임');
       expect(mockUserService.updateNickname).toHaveBeenCalledWith(
         'user-1',

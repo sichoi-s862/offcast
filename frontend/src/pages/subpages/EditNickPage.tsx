@@ -47,7 +47,7 @@ const Input = styled.input`
 
 const HelpText = styled.p`
   font-size: 12px;
-  color: #6b7280;
+  color: #9ca3af;
   margin-bottom: 32px;
 `;
 

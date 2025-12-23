@@ -53,8 +53,14 @@ const Header = styled.div`
 
 const CloseButton = styled.button`
   color: #9ca3af;
-  padding: 8px;
-  margin-left: -8px;
+  padding: 10px;
+  margin-left: -10px;
+  min-width: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
 
   svg {
     width: 24px;
@@ -63,6 +69,7 @@ const CloseButton = styled.button`
 
   &:hover {
     color: white;
+    background-color: rgba(255, 255, 255, 0.05);
   }
 `;
 
@@ -130,7 +137,7 @@ const TitleInput = styled.input`
   margin-bottom: 16px;
 
   &::placeholder {
-    color: #4b5563;
+    color: #9ca3af;
   }
 `;
 
@@ -147,7 +154,7 @@ const ContentTextarea = styled.textarea`
   overflow: hidden;
 
   &::placeholder {
-    color: #4b5563;
+    color: #9ca3af;
   }
 `;
 
@@ -173,10 +180,15 @@ const RemoveBtn = styled.button`
   position: absolute;
   top: 8px;
   right: 8px;
-  padding: 6px;
+  padding: 10px;
+  min-width: 44px;
+  min-height: 44px;
   background-color: rgba(0, 0, 0, 0.7);
   border-radius: 50%;
   color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 
   svg {
     width: 18px;
@@ -217,8 +229,13 @@ const Footer = styled.div`
 
 const FooterButton = styled.button`
   padding: 12px;
+  min-width: 48px;
+  min-height: 48px;
   color: #9ca3af;
   border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 
   svg {
     width: 24px;
@@ -290,11 +307,13 @@ export const WriteModal: React.FC<WriteModalProps> = ({
 
   const { channels } = useChannelStore();
 
-  // 접근 가능한 채널만 필터링 (min/max 범위 체크)
+  // 접근 가능한 채널만 필터링 (min/max 범위 + provider 체크)
   const accessibleChannels = channels.filter((ch) => {
     const aboveMin = currentUser.rawSubCount >= ch.minSubscribers;
     const belowMax = ch.maxSubscribers === null || currentUser.rawSubCount <= ch.maxSubscribers;
-    return aboveMin && belowMax;
+    const hasProviderAccess = !ch.providerOnly ||
+      (currentUser.providers?.includes(ch.providerOnly) ?? false);
+    return aboveMin && belowMax && hasProviderAccess;
   });
 
   const selectedChannel = channels.find((ch) => ch.id === selectedChannelId);
@@ -402,7 +421,7 @@ export const WriteModal: React.FC<WriteModalProps> = ({
     <ModalOverlay $isOpen={isOpen}>
       <ModalContainer>
         <Header>
-          <CloseButton onClick={handleClose}>
+          <CloseButton onClick={handleClose} aria-label="Close">
             <X />
           </CloseButton>
           <TopicSelector onClick={() => setIsChannelDropdownOpen(!isChannelDropdownOpen)}>
@@ -459,7 +478,7 @@ export const WriteModal: React.FC<WriteModalProps> = ({
                       Uploading...
                     </UploadingOverlay>
                   )}
-                  <RemoveBtn onClick={() => handleRemoveImage(index)}>
+                  <RemoveBtn onClick={() => handleRemoveImage(index)} aria-label="Remove image">
                     <X />
                   </RemoveBtn>
                 </ImageWrapper>
@@ -473,10 +492,11 @@ export const WriteModal: React.FC<WriteModalProps> = ({
             onClick={() => fileInputRef.current?.click()}
             disabled={selectedImages.length >= MAX_IMAGES}
             style={{ opacity: selectedImages.length >= MAX_IMAGES ? 0.5 : 1 }}
+            aria-label="Add image"
           >
             <ImageIcon />
           </FooterButton>
-          <FooterButton onClick={handleHashtag}>
+          <FooterButton onClick={handleHashtag} aria-label="Add hashtag">
             <Hash />
           </FooterButton>
           <HiddenFileInput

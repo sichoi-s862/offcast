@@ -6,13 +6,6 @@ import { OffcastLogo } from '../components/icons/PlatformIcons';
 import { BottomNav } from '../components/layout/BottomNav';
 import { WriteModal } from '../components/post/WriteModal';
 import { FeedView, ChannelsView, MyPageView } from './views';
-import {
-  ContactPage,
-  CustomerCenterPage,
-  MyPostsPage,
-  MyInfoPage,
-  EditNickPage
-} from './subpages';
 import type { CurrentUser, ApiPost, CreatePostDto } from '../types';
 import { usePostStore, useChannelStore, useAuthStore } from '../stores';
 import { incrementAppHistory } from '../App';
@@ -107,7 +100,7 @@ const SearchInput = styled.input`
   }
 
   &::placeholder {
-    color: #6b7280;
+    color: #9ca3af;
   }
 `;
 
@@ -184,14 +177,11 @@ const FAB = styled.button`
   }
 `;
 
-type Screen = 'main' | 'my_posts' | 'my_info' | 'edit_nick' | 'contact' | 'customer_center';
-
 export const MainApp: React.FC<MainAppProps> = ({
   currentUser,
   initialTab = 'home'
 }) => {
   const navigate = useNavigate();
-  const [currentScreen, setCurrentScreen] = useState<Screen>('main');
   const [isWriteOpen, setIsWriteOpen] = useState(false);
   const [selectedChannelId, setSelectedChannelId] = useState<string | null>(null);
 
@@ -204,7 +194,7 @@ export const MainApp: React.FC<MainAppProps> = ({
   // Zustand 스토어
   const { createNewPost, refreshPosts } = usePostStore();
   const { fetchChannels } = useChannelStore();
-  const { logout, setUser } = useAuthStore();
+  const { logout } = useAuthStore();
 
   // URL 기반 탭 (initialTab을 사용)
   const activeTab = initialTab;
@@ -225,20 +215,15 @@ export const MainApp: React.FC<MainAppProps> = ({
     navigate('/home');
   }, [logout, navigate]);
 
-  // 닉네임 업데이트 핸들러
-  const handleUpdateNickname = useCallback((nickname: string) => {
-    setUser({ ...currentUser, nickname });
-  }, [currentUser, setUser]);
-
-  // 초기 로드
+  // 초기 로드 (캐시/중복 방지 적용됨)
   useEffect(() => {
     fetchChannels();
-  }, [fetchChannels]);
+  }, []); // 마운트 시 1회만
 
-  // Scroll to top on tab or screen change
+  // Scroll to top on tab change
   useEffect(() => {
     window.scrollTo(0, 0);
-  }, [activeTab, currentScreen]);
+  }, [activeTab]);
 
   // 검색어 디바운스 (300ms)
   useEffect(() => {
@@ -313,34 +298,23 @@ export const MainApp: React.FC<MainAppProps> = ({
     setSelectedChannelId(null);
   }, []);
 
-  // 서브 페이지들
-  if (currentScreen === 'my_posts') {
-    return (
-      <MyPostsPage
-        currentUser={currentUser}
-        onBack={() => setCurrentScreen('main')}
-        onPostClick={handlePostClick}
-      />
-    );
-  }
-  if (currentScreen === 'my_info') {
-    return <MyInfoPage currentUser={currentUser} onBack={() => setCurrentScreen('main')} />;
-  }
-  if (currentScreen === 'edit_nick') {
-    return (
-      <EditNickPage
-        currentUser={currentUser}
-        onBack={() => setCurrentScreen('main')}
-        onUpdateNickname={handleUpdateNickname}
-      />
-    );
-  }
-  if (currentScreen === 'contact') {
-    return <ContactPage onBack={() => setCurrentScreen('main')} />;
-  }
-  if (currentScreen === 'customer_center') {
-    return <CustomerCenterPage onBack={() => setCurrentScreen('main')} />;
-  }
+  // 마이페이지 네비게이션 핸들러
+  const handleMyPageNavigate = useCallback((screen: string) => {
+    const routes: Record<string, string> = {
+      'my_posts': '/my/posts',
+      'my_info': '/my/info',
+      'edit_nick': '/my/edit-nick',
+      'contact': '/my/contact',
+      'customer_center': '/my/help',
+      'withdraw': '/my/withdraw',
+      'agreements': '/my/agreements',
+    };
+    const route = routes[screen];
+    if (route) {
+      incrementAppHistory();
+      navigate(route);
+    }
+  }, [navigate]);
 
   return (
     <AppContainer>
@@ -403,7 +377,7 @@ export const MainApp: React.FC<MainAppProps> = ({
           <MyPageView
             currentUser={currentUser}
             onLogout={handleLogout}
-            onNavigate={setCurrentScreen}
+            onNavigate={handleMyPageNavigate}
           />
         )}
       </Main>

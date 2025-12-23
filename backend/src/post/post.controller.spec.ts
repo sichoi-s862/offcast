@@ -60,10 +60,12 @@ describe('PostController', () => {
   const mockChannelService = {
     findById: jest.fn(),
     getAccessibleChannels: jest.fn(),
+    hasChannelAccess: jest.fn(),
   };
 
   const mockUserService = {
     getMaxSubscriberCount: jest.fn(),
+    getUserProviders: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -190,6 +192,8 @@ describe('PostController', () => {
     it('게시글 상세를 조회해야 함', async () => {
       mockPostService.findById.mockResolvedValue(mockPost);
       mockUserService.getMaxSubscriberCount.mockResolvedValue(100000);
+      mockUserService.getUserProviders.mockResolvedValue(['YOUTUBE']);
+      mockChannelService.hasChannelAccess.mockReturnValue(true);
       mockPostService.incrementViewCount.mockResolvedValue(undefined);
 
       const result = await controller.findById(mockUser as any, 'post-1');
@@ -217,6 +221,8 @@ describe('PostController', () => {
       };
       mockPostService.findById.mockResolvedValue(postWithRestrictedChannel);
       mockUserService.getMaxSubscriberCount.mockResolvedValue(50000);
+      mockUserService.getUserProviders.mockResolvedValue(['YOUTUBE']);
+      mockChannelService.hasChannelAccess.mockReturnValue(false);
 
       const result = await controller.findById(mockUser as any, 'post-1');
 
@@ -228,6 +234,8 @@ describe('PostController', () => {
     it('게시글을 생성해야 함', async () => {
       mockChannelService.findById.mockResolvedValue(mockChannel);
       mockUserService.getMaxSubscriberCount.mockResolvedValue(100000);
+      mockUserService.getUserProviders.mockResolvedValue(['YOUTUBE']);
+      mockChannelService.hasChannelAccess.mockReturnValue(true);
       mockPostService.create.mockResolvedValue(mockPost);
 
       const result = await controller.create(mockUser as any, {
@@ -239,7 +247,7 @@ describe('PostController', () => {
       expect(result).toEqual(mockPost);
     });
 
-    it('존재하지 않는 채널이면 FORBIDDEN을 반환해야 함', async () => {
+    it('존재하지 않는 채널이면 NOT_FOUND를 반환해야 함', async () => {
       mockChannelService.findById.mockResolvedValue(null);
 
       const result = await controller.create(mockUser as any, {
@@ -248,7 +256,7 @@ describe('PostController', () => {
         content: '내용',
       });
 
-      expect(result.statusCode).toBe(HttpStatus.FORBIDDEN);
+      expect(result.statusCode).toBe(HttpStatus.NOT_FOUND);
     });
 
     it('채널 접근 권한이 없으면 FORBIDDEN을 반환해야 함', async () => {
@@ -258,6 +266,8 @@ describe('PostController', () => {
       };
       mockChannelService.findById.mockResolvedValue(restrictedChannel);
       mockUserService.getMaxSubscriberCount.mockResolvedValue(50000);
+      mockUserService.getUserProviders.mockResolvedValue(['YOUTUBE']);
+      mockChannelService.hasChannelAccess.mockReturnValue(false);
 
       const result = await controller.create(mockUser as any, {
         channelId: 'channel-1',

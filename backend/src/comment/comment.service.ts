@@ -353,11 +353,11 @@ export class CommentService {
    * 구독자 수 포맷팅
    */
   private formatSubscriberCount(count: number): string {
-    if (count >= 10000) {
-      return `${Math.floor(count / 10000)}만`;
+    if (count >= 1000000) {
+      return `${Math.floor(count / 1000000)}M+`;
     } else if (count >= 1000) {
-      return `${(count / 1000).toFixed(1)}천`;
+      return `${Math.floor(count / 1000)}K+`;
     }
-    return count.toString();
+    return `${count}+`;
   }
 }
